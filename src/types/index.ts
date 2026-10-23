@@ -142,3 +142,22 @@ export interface Decision {
   chosen_option?: string | null;
   created_at: string;
 }
+
+export interface ProjectTask {
+  id: string;
+  title: string;
+  completed: boolean;
+  due_date?: string | null;
+}
+
+export interface Project {
+  id: string;
+  user_id: string;
+  title: string;
+  description: string;
+  status: 'active' | 'planning' | 'review' | 'completed';
+  priority: 'low' | 'medium' | 'high' | 'critical';
+  target_date?: string | null;
+  tasks: ProjectTask[];
+  created_at: string;
+}

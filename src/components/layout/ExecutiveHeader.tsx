@@ -112,12 +112,23 @@ export const ExecutiveHeader: React.FC<ExecutiveHeaderProps> = ({
             )}
           </NavLink>
 
-          <button
-            onClick={() => navigate('/')}
-            className="px-3.5 py-1.5 text-xs font-medium text-slate-400 hover:text-slate-200 transition"
+          <NavLink
+            to="/projects"
+            className={({ isActive }) =>
+              `relative px-3.5 py-1.5 text-xs font-medium transition duration-150 ${
+                isActive ? 'text-amber-300 font-semibold' : 'text-slate-400 hover:text-slate-200'
+              }`
+            }
           >
-            Projects
-          </button>
+            {({ isActive }) => (
+              <>
+                <span>Projects</span>
+                {isActive && (
+                  <span className="absolute bottom-0 left-2 right-2 h-0.5 bg-gradient-to-r from-amber-400 to-amber-600 rounded-full" />
+                )}
+              </>
+            )}
+          </NavLink>
 
           <NavLink
             to="/goals"

@@ -11,6 +11,7 @@ import {
   SAMPLE_JOURNAL_ENTRIES,
   SAMPLE_REVIEWS,
   SAMPLE_DECISIONS,
+  SAMPLE_PROJECTS,
 } from '../lib/sampleData';
 import type {
   DailyCheckin,
@@ -21,6 +22,7 @@ import type {
   DailyReview,
   Decision,
   JournalEntryType,
+  Project,
 } from '../types';
 
 interface DataContextType {
@@ -29,6 +31,7 @@ interface DataContextType {
   activePlan: DailyPlan | null;
   planHistory: DailyPlan[];
   goals: Goal[];
+  projects: Project[];
   journalEntries: JournalEntry[];
   reviews: DailyReview[];
   decisions: Decision[];
@@ -40,6 +43,10 @@ interface DataContextType {
   addGoal: (title: string, description?: string, targetDate?: string) => Promise<void>;
   updateGoalStatus: (goalId: string, status: Goal['status']) => Promise<void>;
   deleteGoal: (goalId: string) => Promise<void>;
+  addProject: (title: string, description: string, priority: Project['priority'], targetDate?: string, initialTasks?: string[]) => Promise<void>;
+  toggleProjectTask: (projectId: string, taskId: string) => Promise<void>;
+  updateProjectStatus: (projectId: string, status: Project['status']) => Promise<void>;
+  deleteProject: (projectId: string) => Promise<void>;
   addJournalEntry: (type: JournalEntryType, content: string, title?: string, mood?: string) => Promise<JournalEntry>;
   updateJournalEntry: (id: string, updates: Partial<JournalEntry>) => Promise<void>;
   deleteJournalEntry: (id: string) => Promise<void>;
@@ -64,6 +71,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [activePlan, setActivePlan] = useState<DailyPlan | null>(null);
   const [planHistory, setPlanHistory] = useState<DailyPlan[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
   const [reviews, setReviews] = useState<DailyReview[]>([]);
   const [decisions, setDecisions] = useState<Decision[]>([]);
@@ -78,6 +86,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const localPlan = localStorage.getItem('ceo_plan');
         const localHistory = localStorage.getItem('ceo_plan_history');
         const localGoals = localStorage.getItem('ceo_goals');
+        const localProjects = localStorage.getItem('ceo_projects');
         const localJournal = localStorage.getItem('ceo_journal');
         const localReviews = localStorage.getItem('ceo_reviews');
         const localDecisions = localStorage.getItem('ceo_decisions');
@@ -86,6 +95,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setActivePlan(localPlan ? JSON.parse(localPlan) : SAMPLE_PLAN);
         setPlanHistory(localHistory ? JSON.parse(localHistory) : [SAMPLE_PLAN]);
         setGoals(localGoals ? JSON.parse(localGoals) : SAMPLE_GOALS);
+        setProjects(localProjects ? JSON.parse(localProjects) : SAMPLE_PROJECTS);
         setJournalEntries(localJournal ? JSON.parse(localJournal) : SAMPLE_JOURNAL_ENTRIES);
         setReviews(localReviews ? JSON.parse(localReviews) : SAMPLE_REVIEWS);
         setDecisions(localDecisions ? JSON.parse(localDecisions) : SAMPLE_DECISIONS);
@@ -149,11 +159,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (activePlan) localStorage.setItem('ceo_plan', JSON.stringify(activePlan));
       localStorage.setItem('ceo_plan_history', JSON.stringify(planHistory));
       localStorage.setItem('ceo_goals', JSON.stringify(goals));
+      localStorage.setItem('ceo_projects', JSON.stringify(projects));
       localStorage.setItem('ceo_journal', JSON.stringify(journalEntries));
       localStorage.setItem('ceo_reviews', JSON.stringify(reviews));
       localStorage.setItem('ceo_decisions', JSON.stringify(decisions));
     }
-  }, [isGuest, checkin, activePlan, planHistory, goals, journalEntries, reviews, decisions]);
+  }, [isGuest, checkin, activePlan, planHistory, goals, projects, journalEntries, reviews, decisions]);
 
   // 1. Submit Daily Check-in and generate strategic plan
   const submitCheckin = async (
@@ -343,6 +354,57 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // 4b. Projects CRUD
+  const addProject = async (
+    title: string,
+    description: string,
+    priority: Project['priority'],
+    targetDate?: string,
+    initialTasks: string[] = []
+  ) => {
+    const userId = user?.id || 'sample-user';
+    const newProj: Project = {
+      id: crypto.randomUUID(),
+      user_id: userId,
+      title,
+      description,
+      status: 'active',
+      priority,
+      target_date: targetDate || null,
+      created_at: new Date().toISOString(),
+      tasks: initialTasks.map((t) => ({
+        id: crypto.randomUUID(),
+        title: t,
+        completed: false,
+      })),
+    };
+    setProjects((prev) => [newProj, ...prev]);
+  };
+
+  const toggleProjectTask = async (projectId: string, taskId: string) => {
+    setProjects((prev) =>
+      prev.map((p) => {
+        if (p.id !== projectId) return p;
+        return {
+          ...p,
+          tasks: p.tasks.map((t) =>
+            t.id === taskId ? { ...t, completed: !t.completed } : t
+          ),
+        };
+      })
+    );
+  };
+
+  const updateProjectStatus = async (projectId: string, status: Project['status']) => {
+    setProjects((prev) =>
+      prev.map((p) => (p.id === projectId ? { ...p, status } : p))
+    );
+  };
+
+  const deleteProject = async (projectId: string) => {
+    setProjects((prev) => prev.filter((p) => p.id !== projectId));
+  };
+
   // 5. CEO Journal CRUD
   const addJournalEntry = async (
     type: JournalEntryType,
@@ -466,6 +528,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setActivePlan(SAMPLE_PLAN);
     setPlanHistory([SAMPLE_PLAN]);
     setGoals(SAMPLE_GOALS);
+    setProjects(SAMPLE_PROJECTS);
     setJournalEntries(SAMPLE_JOURNAL_ENTRIES);
     setReviews(SAMPLE_REVIEWS);
     setDecisions(SAMPLE_DECISIONS);
@@ -476,6 +539,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setActivePlan(null);
     setPlanHistory([]);
     setGoals([]);
+    setProjects([]);
     setJournalEntries([]);
     setReviews([]);
     setDecisions([]);
@@ -490,6 +554,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         activePlan,
         planHistory,
         goals,
+        projects,
         journalEntries,
         reviews,
         decisions,
@@ -501,6 +566,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         addGoal,
         updateGoalStatus,
         deleteGoal,
+        addProject,
+        toggleProjectTask,
+        updateProjectStatus,
+        deleteProject,
         addJournalEntry,
         updateJournalEntry,
         deleteJournalEntry,

@@ -1,4 +1,4 @@
-import type { DailyPlan, DailyCheckin, Goal, JournalEntry, DailyReview, Decision } from '../types';
+import type { DailyPlan, DailyCheckin, Goal, JournalEntry, DailyReview, Decision, Project } from '../types';
 import { getTodayLocalDate } from './dates';
 
 const today = getTodayLocalDate();
@@ -210,5 +210,68 @@ export const SAMPLE_DECISIONS: Decision[] = [
     },
     chosen_option: 'opt-1',
     created_at: new Date(Date.now() - 86400000 * 3).toISOString(),
+  },
+];
+
+export const SAMPLE_PROJECTS: Project[] = [
+  {
+    id: 'proj-1',
+    user_id: 'sample-user',
+    title: 'Enterprise Pilot & Product Launch',
+    description: 'Finalize core API architecture, telemetry, and rollout to initial design partner pilot cohort.',
+    status: 'active',
+    priority: 'critical',
+    target_date: '2026-11-15',
+    created_at: new Date(Date.now() - 86400000 * 10).toISOString(),
+    tasks: [
+      { id: 'task-1', title: 'Lock core API pipeline specs and latency fallback', completed: true, due_date: '2026-10-24' },
+      { id: 'task-2', title: 'Test vendor rate limiting and circuit breakers', completed: true, due_date: '2026-10-25' },
+      { id: 'task-3', title: 'Deploy staging environment for design partners', completed: false, due_date: '2026-10-28' },
+      { id: 'task-4', title: 'Conduct executive demo with pilot stakeholders', completed: false, due_date: '2026-11-02' },
+    ],
+  },
+  {
+    id: 'proj-2',
+    user_id: 'sample-user',
+    title: 'Executive Routine & Cognitive Architecture',
+    description: 'Establish a sub-60s daily check-in habit and uninterrupted morning deep work focus blocks.',
+    status: 'active',
+    priority: 'high',
+    target_date: '2026-11-01',
+    created_at: new Date(Date.now() - 86400000 * 15).toISOString(),
+    tasks: [
+      { id: 'task-5', title: 'Institute 9:00 AM – 11:30 AM no-meeting policy', completed: true, due_date: '2026-10-20' },
+      { id: 'task-6', title: 'Set up evening shutdown ritual debrief', completed: true, due_date: '2026-10-22' },
+      { id: 'task-7', title: 'Measure 14-day consistency in Evidence Insights', completed: false, due_date: '2026-11-01' },
+    ],
+  },
+  {
+    id: 'proj-3',
+    user_id: 'sample-user',
+    title: 'Engineering Leadership Hiring',
+    description: 'Screen principal engineering candidates and finalize onboarding roadmap.',
+    status: 'completed',
+    priority: 'medium',
+    target_date: '2026-10-22',
+    created_at: new Date(Date.now() - 86400000 * 25).toISOString(),
+    tasks: [
+      { id: 'task-8', title: 'Review 24 candidate portfolios and shortlist', completed: true, due_date: '2026-10-10' },
+      { id: 'task-9', title: 'Conduct final culture & technical alignment rounds', completed: true, due_date: '2026-10-18' },
+      { id: 'task-10', title: 'Candidate signed offer letter', completed: true, due_date: '2026-10-22' },
+    ],
+  },
+  {
+    id: 'proj-4',
+    user_id: 'sample-user',
+    title: 'Automated Telemetry & OpenTelemetry Integration',
+    description: 'Managed monitoring to capture real-time application throughput and error budgets.',
+    status: 'planning',
+    priority: 'medium',
+    target_date: '2026-11-20',
+    created_at: new Date(Date.now() - 86400000 * 5).toISOString(),
+    tasks: [
+      { id: 'task-11', title: 'Evaluate managed OTel SaaS pricing tiers', completed: true, due_date: '2026-10-24' },
+      { id: 'task-12', title: 'Configure collector agents and error alerting', completed: false, due_date: '2026-11-10' },
+    ],
   },
 ];

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { ExecutiveHeader } from './ExecutiveHeader';
+import { DesignBackground } from './DesignBackground';
 import { CommandAssistant } from '../talk/CommandAssistant';
 import { HowToUseSection } from '../common/HowToUseSection';
 
@@ -21,19 +22,24 @@ export const Layout: React.FC = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#08090d] text-slate-100 font-sans antialiased flex flex-col selection:bg-amber-500/20 selection:text-amber-200">
-      {/* Top Floating Executive Header matching reference image */}
-      <ExecutiveHeader
-        onOpenAssistant={() => setIsAssistantOpen(true)}
-        onOpenHowToUse={() => setIsHowToUseOpen(true)}
-      />
+    <div className="min-h-screen bg-[#08090d] text-slate-100 font-sans antialiased flex flex-col relative selection:bg-amber-500/20 selection:text-amber-200">
+      {/* 1. Design Background matching the reference UI */}
+      <DesignBackground />
 
-      {/* Main App Page Body */}
-      <main className="flex-1 px-4 sm:px-8 py-6 max-w-7xl w-full mx-auto">
+      {/* 2. Top Floating Executive Header */}
+      <div className="relative z-20">
+        <ExecutiveHeader
+          onOpenAssistant={() => setIsAssistantOpen(true)}
+          onOpenHowToUse={() => setIsHowToUseOpen(true)}
+        />
+      </div>
+
+      {/* 3. Main App Page Body */}
+      <main className="flex-1 px-4 sm:px-8 py-6 max-w-7xl w-full mx-auto relative z-10">
         <Outlet />
       </main>
 
-      {/* Modals */}
+      {/* 4. Modals */}
       <CommandAssistant isOpen={isAssistantOpen} onClose={() => setIsAssistantOpen(false)} />
       {isHowToUseOpen && (
         <HowToUseSection isModal onClose={() => setIsHowToUseOpen(false)} />

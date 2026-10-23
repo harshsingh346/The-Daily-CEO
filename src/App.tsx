@@ -7,6 +7,7 @@ import { DashboardPage } from './pages/DashboardPage';
 import { CheckInPage } from './pages/CheckInPage';
 import { JournalPage } from './pages/JournalPage';
 import { GoalsPage } from './pages/GoalsPage';
+import { ProjectsPage } from './pages/ProjectsPage';
 import { DecisionRoomPage } from './pages/DecisionRoomPage';
 import { HistoryPage } from './pages/HistoryPage';
 import { ReviewPage } from './pages/ReviewPage';
@@ -26,6 +27,7 @@ export function App() {
             <Route path="/" element={<Layout />}>
               <Route index element={<DashboardPage />} />
               <Route path="checkin" element={<CheckInPage />} />
+              <Route path="projects" element={<ProjectsPage />} />
               <Route path="journal" element={<JournalPage />} />
               <Route path="goals" element={<GoalsPage />} />
               <Route path="decision-room" element={<DecisionRoomPage />} />
