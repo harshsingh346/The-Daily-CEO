@@ -76,7 +76,7 @@ export const DashboardPage: React.FC = () => {
           </div>
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-slate-100 flex items-center gap-2">
             <span>Lead Your Day with</span>
-            <span className="text-gold-gradient font-extrabold">Intention</span>
+            <span className="text-gold-gradient animate-gold-shimmer font-extrabold">Intention</span>
           </h1>
           <p className="text-xs sm:text-sm text-slate-400 mt-1 flex items-center gap-1.5">
             <span className="text-amber-400">✦</span>
@@ -99,7 +99,7 @@ export const DashboardPage: React.FC = () => {
             </div>
             <div className="w-full h-1 bg-slate-800 rounded-full overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-amber-500 to-amber-300 rounded-full transition-all duration-500 shadow-[0_0_6px_rgba(245,158,11,0.7)]"
+                className="h-full animate-bar-shine rounded-full transition-all duration-500 shadow-[0_0_6px_rgba(245,158,11,0.7)]"
                 style={{ width: `${progressPercent}%` }}
               />
             </div>

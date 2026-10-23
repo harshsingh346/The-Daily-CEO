@@ -167,7 +167,18 @@ export const ExecutiveHeader: React.FC<ExecutiveHeaderProps> = ({
         </nav>
 
         {/* Right Section: Notifications & User Profile */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5 sm:gap-3">
+          {/* Quick Sign In button when in guest mode */}
+          {isGuest && (
+            <button
+              onClick={() => navigate('/login')}
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full border border-amber-500/40 hover:border-amber-400 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 hover:text-amber-200 text-xs font-medium transition cursor-pointer shadow-sm"
+            >
+              <Sparkles className="w-3 h-3 text-amber-400" />
+              <span>Sign In</span>
+            </button>
+          )}
+
           {/* Notification Bell with Amber Dot matching reference */}
           <button
             onClick={onOpenAssistant}
@@ -261,17 +272,31 @@ export const ExecutiveHeader: React.FC<ExecutiveHeaderProps> = ({
                   </button>
                 </div>
 
-                <div className="pt-1 border-t border-white/[0.06]">
-                  <button
-                    onClick={() => {
-                      setIsUserMenuOpen(false);
-                      signOut();
-                    }}
-                    className="w-full px-3 py-2 text-left text-rose-400 hover:bg-rose-500/10 flex items-center gap-2"
-                  >
-                    <LogOut className="w-3.5 h-3.5" />
-                    <span>Sign Out</span>
-                  </button>
+                <div className="pt-1 border-t border-white/[0.06] px-1">
+                  {isGuest ? (
+                    <button
+                      onClick={() => {
+                        setIsUserMenuOpen(false);
+                        navigate('/login');
+                      }}
+                      className="w-full px-3 py-2 text-left text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 rounded-lg flex items-center gap-2 font-medium"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Sign In with Gmail</span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={async () => {
+                        setIsUserMenuOpen(false);
+                        await signOut();
+                        navigate('/login');
+                      }}
+                      className="w-full px-3 py-2 text-left text-rose-400 hover:bg-rose-500/10 rounded-lg flex items-center gap-2"
+                    >
+                      <LogOut className="w-3.5 h-3.5" />
+                      <span>Sign Out</span>
+                    </button>
+                  )}
                 </div>
               </div>
             )}

@@ -88,3 +88,170 @@ input:focus, textarea:focus, select:focus, button:focus-visible {
 .animate-fade-in {
   animation: fadeIn 0.25s ease-out forwards;
 }
+
+/* Executive Golden Text Shimmer */
+@keyframes goldShimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-gold-shimmer {
+  background: linear-gradient(135deg, #fef08a 0%, #f59e0b 25%, #fbbf24 50%, #f59e0b 75%, #fef08a 100%);
+  background-size: 250% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: goldShimmer 7s ease-in-out infinite;
+}
+
+/* Ambient Breathing Glow */
+@keyframes ambientBreathe {
+  0%, 100% {
+    opacity: 0.75;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+}
+
+.animate-ambient-breathe {
+  animation: ambientBreathe 14s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+/* Diagonal Light Ray Drift */
+@keyframes rayDrift {
+  0%, 100% {
+    transform: rotate(-25deg) translate3d(0, 0, 0);
+  }
+  50% {
+    transform: rotate(-24deg) translate3d(15px, 10px, 0);
+  }
+}
+
+.animate-ray-drift {
+  animation: rayDrift 20s ease-in-out infinite;
+  will-change: transform;
+}
+
+@keyframes rayDriftReverse {
+  0%, 100% {
+    transform: rotate(-35deg) translate3d(0, 0, 0);
+  }
+  50% {
+    transform: rotate(-36deg) translate3d(-10px, -8px, 0);
+  }
+}
+
+.animate-ray-drift-reverse {
+  animation: rayDriftReverse 18s ease-in-out infinite;
+  will-change: transform;
+}
+
+/* Golden Wave Glow Pulse */
+@keyframes waveGlowPulse {
+  0%, 100% {
+    filter: drop-shadow(0 0 2px rgba(245, 158, 11, 0.3));
+    transform: translateY(0);
+  }
+  50% {
+    filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.65));
+    transform: translateY(-2px);
+  }
+}
+
+.animate-wave-glow {
+  animation: waveGlowPulse 4.5s ease-in-out infinite;
+  transform-origin: center bottom;
+}
+
+/* Energetic Ribbon Flow */
+@keyframes ribbonFlow {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scaleY(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scaleY(1.05) translateY(-1px);
+  }
+}
+
+.animate-ribbon-flow {
+  animation: ribbonFlow 5s ease-in-out infinite;
+  transform-origin: center bottom;
+}
+
+/* Decision Peak Pulse */
+@keyframes peakPulse {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 22px rgba(245, 158, 11, 0.8), 0 0 35px rgba(254, 240, 138, 0.4);
+  }
+}
+
+.animate-peak-pulse {
+  animation: peakPulse 3s ease-in-out infinite;
+}
+
+/* Subtle Golden Particle Dust */
+@keyframes particleFloat {
+  0% {
+    transform: translateY(0) translateX(0);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.4;
+  }
+  80% {
+    opacity: 0.4;
+  }
+  100% {
+    transform: translateY(-140px) translateX(25px);
+    opacity: 0;
+  }
+}
+
+.animate-particle-1 {
+  animation: particleFloat 14s ease-in-out infinite;
+}
+
+.animate-particle-2 {
+  animation: particleFloat 18s ease-in-out infinite 5s;
+}
+
+.animate-particle-3 {
+  animation: particleFloat 16s ease-in-out infinite 9s;
+}
+
+/* Animated Golden Progress Bar Sweep */
+@keyframes barShine {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-bar-shine {
+  background: linear-gradient(
+    90deg,
+    #f59e0b 0%,
+    #fde047 50%,
+    #f59e0b 100%
+  );
+  background-size: 200% 100%;
+  animation: barShine 4s ease-in-out infinite;
+}
+

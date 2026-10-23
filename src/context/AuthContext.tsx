@@ -9,8 +9,16 @@ interface AuthContextType {
   profile: Profile | null;
   isLoading: boolean;
   isGuest: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string, displayName?: string) => Promise<{ error: Error | null }>;
+  signIn: (email: string, password: string) => Promise<{ error: Error | null; data?: any }>;
+  signUp: (
+    email: string,
+    password: string,
+    displayName?: string
+  ) => Promise<{ error: Error | null; data?: any; requiresEmailConfirmation?: boolean }>;
+  resendConfirmationEmail: (email: string) => Promise<{ error: Error | null; data?: any }>;
+  verifyOtp: (email: string, token: string) => Promise<{ error: Error | null; data?: any }>;
+  resetPassword: (email: string) => Promise<{ error: Error | null }>;
+  signInWithGoogle: () => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   continueAsDemoUser: () => void;
   updateProfile: (updates: Partial<Profile>) => Promise<void>;
@@ -50,42 +58,60 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   });
 
   useEffect(() => {
-    // 1. If currently in demo mode:
-    if (isGuest) {
+    // 1. If explicitly in demo mode:
+    const storedMode = localStorage.getItem('the_daily_ceo_mode');
+    if (storedMode === 'demo') {
+      setIsGuest(true);
       setUser(DEMO_USER);
       setProfile(DEMO_PROFILE);
       setIsLoading(false);
       return;
     }
 
-    // 2. Otherwise initialize Supabase auth session:
-    supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
-      setSession(initialSession);
-      setUser(initialSession?.user ?? null);
-      if (initialSession?.user) {
-        fetchOrCreateProfile(initialSession.user);
-      } else {
-        // By default, start with demo user to guarantee seamless, instant access for evaluation
+    // 2. Check active Supabase auth session:
+    supabase.auth
+      .getSession()
+      .then(({ data: { session: initialSession } }) => {
+        setSession(initialSession);
+        setUser(initialSession?.user ?? null);
+        if (initialSession?.user) {
+          setIsGuest(false);
+          fetchOrCreateProfile(initialSession.user);
+        } else {
+          // If no active session, check if user logged out
+          const wasLoggedOut = sessionStorage.getItem('the_daily_ceo_logged_out');
+          if (wasLoggedOut) {
+            setIsGuest(false);
+            setUser(null);
+            setProfile(null);
+          } else {
+            // Default to demo mode for instantaneous zero-friction evaluation
+            setIsGuest(true);
+            setUser(DEMO_USER);
+            setProfile(DEMO_PROFILE);
+          }
+        }
+        setIsLoading(false);
+      })
+      .catch((err) => {
+        console.warn('Auth session check fallback:', err);
         setIsGuest(true);
         setUser(DEMO_USER);
         setProfile(DEMO_PROFILE);
-      }
-      setIsLoading(false);
-    }).catch((err) => {
-      console.warn('Auth session check fallback:', err);
-      setIsGuest(true);
-      setUser(DEMO_USER);
-      setProfile(DEMO_PROFILE);
-      setIsLoading(false);
-    });
+        setIsLoading(false);
+      });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, currentSession) => {
+    // 3. Listen to auth state events (including email confirmation redirect, login, logout)
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (_event, currentSession) => {
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
       if (currentSession?.user) {
         setIsGuest(false);
         localStorage.removeItem('the_daily_ceo_mode');
-        fetchOrCreateProfile(currentSession.user);
+        sessionStorage.removeItem('the_daily_ceo_logged_out');
+        await fetchOrCreateProfile(currentSession.user);
       }
       setIsLoading(false);
     });
@@ -93,7 +119,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       subscription.unsubscribe();
     };
-  }, [isGuest]);
+  }, []);
 
   async function fetchOrCreateProfile(currentUser: User) {
     try {
@@ -113,7 +139,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Upsert default profile
         const newProfile: Partial<Profile> = {
           id: currentUser.id,
-          display_name: currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'Executive',
+          display_name:
+            currentUser.user_metadata?.full_name ||
+            currentUser.email?.split('@')[0] ||
+            'Executive',
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Kolkata',
           preferences: {},
         };
@@ -132,55 +161,160 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   async function signIn(email: string, password: string) {
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (!error) {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+
+      if (!error && data?.session) {
         setIsGuest(false);
         localStorage.removeItem('the_daily_ceo_mode');
+        sessionStorage.removeItem('the_daily_ceo_logged_out');
+        setSession(data.session);
+        setUser(data.user);
+        if (data.user) {
+          await fetchOrCreateProfile(data.user);
+        }
       }
       setIsLoading(false);
-      return { error };
+      return { error, data };
     } catch (err: any) {
       setIsLoading(false);
-      return { error: err };
+      return { error: err, data: null };
     }
   }
 
   async function signUp(email: string, password: string, displayName?: string) {
     setIsLoading(true);
     try {
-      const { error, data } = await supabase.auth.signUp({
-        email,
+      const redirectUrl = `${window.location.origin}/`;
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim(),
         password,
         options: {
+          emailRedirectTo: redirectUrl,
           data: {
-            full_name: displayName,
+            full_name: displayName?.trim() || email.split('@')[0],
           },
         },
       });
-      if (!error && data.user) {
+
+      if (error) {
+        setIsLoading(false);
+        return { error, data: null, requiresEmailConfirmation: false };
+      }
+
+      // If Supabase has email confirmation enabled, data.user is created but data.session is null
+      const requiresEmailConfirmation = Boolean(data?.user && !data?.session);
+
+      if (!requiresEmailConfirmation && data?.session) {
         setIsGuest(false);
         localStorage.removeItem('the_daily_ceo_mode');
+        sessionStorage.removeItem('the_daily_ceo_logged_out');
+        setSession(data.session);
+        setUser(data.user);
+        if (data.user) {
+          await fetchOrCreateProfile(data.user);
+        }
       }
+
       setIsLoading(false);
-      return { error };
+      return { error: null, data, requiresEmailConfirmation };
     } catch (err: any) {
       setIsLoading(false);
+      return { error: err, data: null, requiresEmailConfirmation: false };
+    }
+  }
+
+  async function resendConfirmationEmail(email: string) {
+    try {
+      const redirectUrl = `${window.location.origin}/`;
+      const { data, error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email.trim(),
+        options: {
+          emailRedirectTo: redirectUrl,
+        },
+      });
+      return { error, data };
+    } catch (err: any) {
+      return { error: err, data: null };
+    }
+  }
+
+  async function verifyOtp(email: string, token: string) {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({
+        email: email.trim(),
+        token: token.trim(),
+        type: 'signup',
+      });
+
+      if (!error && data?.session) {
+        setIsGuest(false);
+        localStorage.removeItem('the_daily_ceo_mode');
+        sessionStorage.removeItem('the_daily_ceo_logged_out');
+        setSession(data.session);
+        setUser(data.user);
+        if (data.user) {
+          await fetchOrCreateProfile(data.user);
+        }
+      }
+      setIsLoading(false);
+      return { error, data };
+    } catch (err: any) {
+      setIsLoading(false);
+      return { error: err, data: null };
+    }
+  }
+
+  async function resetPassword(email: string) {
+    try {
+      const redirectUrl = `${window.location.origin}/`;
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: redirectUrl,
+      });
+      return { error };
+    } catch (err: any) {
+      return { error: err };
+    }
+  }
+
+  async function signInWithGoogle() {
+    try {
+      const redirectUrl = `${window.location.origin}/`;
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: redirectUrl,
+        },
+      });
+      return { error };
+    } catch (err: any) {
       return { error: err };
     }
   }
 
   async function signOut() {
     setIsLoading(true);
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.warn('Sign out error:', err);
+    }
     localStorage.removeItem('the_daily_ceo_mode');
-    setIsGuest(true);
-    setUser(DEMO_USER);
-    setProfile(DEMO_PROFILE);
+    sessionStorage.setItem('the_daily_ceo_logged_out', 'true');
+    setSession(null);
+    setUser(null);
+    setProfile(null);
+    setIsGuest(false);
     setIsLoading(false);
   }
 
   function continueAsDemoUser() {
     localStorage.setItem('the_daily_ceo_mode', 'demo');
+    sessionStorage.removeItem('the_daily_ceo_logged_out');
     setIsGuest(true);
     setUser(DEMO_USER);
     setProfile(DEMO_PROFILE);
@@ -205,6 +339,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isGuest,
         signIn,
         signUp,
+        resendConfirmationEmail,
+        verifyOtp,
+        resetPassword,
+        signInWithGoogle,
         signOut,
         continueAsDemoUser,
         updateProfile,

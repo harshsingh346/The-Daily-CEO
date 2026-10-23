@@ -9,7 +9,7 @@ export const DeepWorkWave: React.FC = () => (
     viewBox="0 0 240 120"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
-    className="absolute right-0 bottom-0 w-44 h-28 pointer-events-none opacity-85"
+    className="absolute right-0 bottom-0 w-44 h-28 pointer-events-none opacity-85 animate-wave-glow"
   >
     <defs>
       <radialGradient id="deepWorkGlow" cx="70%" cy="80%" r="65%">
@@ -47,7 +47,7 @@ export const EnergyFocusWave: React.FC = () => (
     viewBox="0 0 240 120"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
-    className="absolute right-0 bottom-0 w-48 h-28 pointer-events-none opacity-85"
+    className="absolute right-0 bottom-0 w-48 h-28 pointer-events-none opacity-85 animate-ribbon-flow"
   >
     <defs>
       <linearGradient id="energyWaveGrad" x1="0%" y1="100%" x2="100%" y2="0%">
@@ -82,21 +82,21 @@ export const DecisionMomentumBars: React.FC = () => (
   <div className="flex items-end gap-1.5 h-16 relative">
     {/* Peak Tag */}
     <div className="absolute -top-6 right-5 bg-[#1f2430] border border-amber-500/40 text-[9px] font-mono font-semibold text-amber-300 px-1.5 py-0.5 rounded-full shadow-sm flex items-center gap-1">
-      <span className="w-1 h-1 rounded-full bg-amber-400 animate-ping" />
+      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
       <span>Peak: 11 AM</span>
     </div>
 
     {/* Bars */}
-    <div className="w-2.5 h-6 rounded-t bg-slate-800/80" />
-    <div className="w-2.5 h-9 rounded-t bg-slate-800/80" />
-    <div className="w-2.5 h-12 rounded-t bg-slate-700/80" />
-    <div className="w-2.5 h-7 rounded-t bg-slate-800/80" />
-    {/* Peak bar */}
-    <div className="w-3 h-16 rounded-t bg-gradient-to-t from-amber-600 via-amber-400 to-yellow-200 shadow-[0_0_12px_rgba(245,158,11,0.5)] border-t border-amber-200" />
-    <div className="w-2.5 h-11 rounded-t bg-slate-700/80" />
-    <div className="w-2.5 h-14 rounded-t bg-gradient-to-t from-amber-700/80 to-amber-500/60" />
-    <div className="w-2.5 h-8 rounded-t bg-slate-800/80" />
-    <div className="w-2.5 h-9 rounded-t bg-slate-800/80" />
+    <div className="w-2.5 h-6 rounded-t bg-slate-800/80 transition-all duration-300" />
+    <div className="w-2.5 h-9 rounded-t bg-slate-800/80 transition-all duration-300" />
+    <div className="w-2.5 h-12 rounded-t bg-slate-700/80 transition-all duration-300" />
+    <div className="w-2.5 h-7 rounded-t bg-slate-800/80 transition-all duration-300" />
+    {/* Peak bar with pulsing glow matching UI */}
+    <div className="w-3 h-16 rounded-t bg-gradient-to-t from-amber-600 via-amber-400 to-yellow-200 border-t border-amber-200 animate-peak-pulse" />
+    <div className="w-2.5 h-11 rounded-t bg-slate-700/80 transition-all duration-300" />
+    <div className="w-2.5 h-14 rounded-t bg-gradient-to-t from-amber-700/80 to-amber-500/60 transition-all duration-300" />
+    <div className="w-2.5 h-8 rounded-t bg-slate-800/80 transition-all duration-300" />
+    <div className="w-2.5 h-9 rounded-t bg-slate-800/80 transition-all duration-300" />
   </div>
 );
 
