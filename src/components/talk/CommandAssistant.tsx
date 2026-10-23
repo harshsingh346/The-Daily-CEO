@@ -102,7 +102,7 @@ export const CommandAssistant: React.FC<CommandAssistantProps> = ({ isOpen, onCl
         {/* Header */}
         <div className="px-5 py-3.5 border-b border-white/[0.08] flex items-center justify-between bg-black/20">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+            <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
               <Bot className="w-4 h-4" />
             </div>
             <div>
@@ -130,7 +130,7 @@ export const CommandAssistant: React.FC<CommandAssistantProps> = ({ isOpen, onCl
             <button
               key={idx}
               onClick={() => handleSend(p.query)}
-              className="text-[11px] whitespace-nowrap px-2.5 py-1 rounded-md bg-white/[0.03] hover:bg-indigo-600/20 border border-white/[0.06] hover:border-indigo-500/30 text-slate-300 hover:text-indigo-200 transition cursor-pointer shrink-0"
+              className="text-[11px] whitespace-nowrap px-2.5 py-1 rounded-md bg-white/[0.03] hover:bg-amber-500/15 border border-white/[0.06] hover:border-amber-500/30 text-slate-300 hover:text-amber-200 transition cursor-pointer shrink-0"
             >
               {p.label}
             </button>
@@ -147,7 +147,7 @@ export const CommandAssistant: React.FC<CommandAssistantProps> = ({ isOpen, onCl
               <div
                 className={`w-6 h-6 rounded-full shrink-0 flex items-center justify-center text-[10px] font-semibold ${
                   m.sender === 'user'
-                    ? 'bg-indigo-600 text-white'
+                    ? 'bg-amber-500 text-black'
                     : 'bg-slate-800 text-slate-300 border border-white/[0.1]'
                 }`}
               >
@@ -156,14 +156,14 @@ export const CommandAssistant: React.FC<CommandAssistantProps> = ({ isOpen, onCl
               <div
                 className={`p-3 rounded-xl text-xs whitespace-pre-wrap leading-relaxed ${
                   m.sender === 'user'
-                    ? 'bg-indigo-600 text-white shadow-sm'
+                    ? 'bg-amber-500/20 text-amber-100 border border-amber-500/30 shadow-sm'
                     : 'bg-white/[0.04] text-slate-200 border border-white/[0.06]'
                 }`}
               >
                 {m.text}
                 <div
                   className={`text-[9px] mt-1.5 font-mono ${
-                    m.sender === 'user' ? 'text-indigo-200' : 'text-slate-400'
+                    m.sender === 'user' ? 'text-amber-300/80' : 'text-slate-400'
                   }`}
                 >
                   {m.timestamp}
@@ -174,11 +174,11 @@ export const CommandAssistant: React.FC<CommandAssistantProps> = ({ isOpen, onCl
           {isTyping && (
             <div className="flex gap-2.5 max-w-[80%] items-center text-xs text-slate-400 pl-8">
               <span className="flex gap-1 items-center">
-                <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-bounce" />
-                <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-bounce [animation-delay:0.2s]" />
-                <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-bounce [animation-delay:0.4s]" />
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-bounce" />
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-bounce [animation-delay:0.2s]" />
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-bounce [animation-delay:0.4s]" />
               </span>
-              <span className="text-[11px] font-mono">Synthesizing...</span>
+              <span className="text-[11px] font-mono text-amber-400">Synthesizing...</span>
             </div>
           )}
           <div ref={messagesEndRef} />
@@ -198,12 +198,12 @@ export const CommandAssistant: React.FC<CommandAssistantProps> = ({ isOpen, onCl
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask your chief of staff anything... (e.g. 'What next?')"
-              className="flex-1 px-3 py-2 rounded-lg bg-black/40 border border-white/[0.08] text-xs text-slate-100 placeholder-slate-500 focus:border-indigo-500 transition"
+              className="flex-1 px-3 py-2 rounded-lg bg-black/40 border border-white/[0.08] text-xs text-slate-100 placeholder-slate-500 focus:border-amber-500 transition"
             />
             <button
               type="submit"
               disabled={!input.trim()}
-              className="p-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white transition cursor-pointer"
+              className="p-2 rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-40 text-black transition cursor-pointer font-bold"
             >
               <Send className="w-3.5 h-3.5" />
             </button>

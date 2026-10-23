@@ -1,15 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
-import { Sidebar } from './Sidebar';
-import { Topbar } from './Topbar';
-import { MobileNav } from './MobileNav';
-import { ReplanModal } from '../dashboard/ReplanModal';
+import { ExecutiveHeader } from './ExecutiveHeader';
 import { CommandAssistant } from '../talk/CommandAssistant';
+import { HowToUseSection } from '../common/HowToUseSection';
 
 export const Layout: React.FC = () => {
-  const [isReplanOpen, setIsReplanOpen] = useState(false);
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isHowToUseOpen, setIsHowToUseOpen] = useState(false);
 
   // Global keyboard shortcuts (⌘K or Ctrl+K for assistant)
   useEffect(() => {
@@ -24,29 +21,23 @@ export const Layout: React.FC = () => {
   }, []);
 
   return (
-    <div className="flex min-h-screen bg-[#090a0f] text-slate-100 font-sans antialiased">
-      {/* Desktop Sidebar */}
-      <div className="hidden md:block">
-        <Sidebar onOpenAssistant={() => setIsAssistantOpen(true)} />
-      </div>
+    <div className="min-h-screen bg-[#08090d] text-slate-100 font-sans antialiased flex flex-col selection:bg-amber-500/20 selection:text-amber-200">
+      {/* Top Floating Executive Header matching reference image */}
+      <ExecutiveHeader
+        onOpenAssistant={() => setIsAssistantOpen(true)}
+        onOpenHowToUse={() => setIsHowToUseOpen(true)}
+      />
 
-      {/* Main Column */}
-      <div className="flex-1 flex flex-col min-w-0">
-        <Topbar
-          onOpenReplan={() => setIsReplanOpen(true)}
-          onToggleMobileNav={() => setIsMobileMenuOpen((prev) => !prev)}
-        />
+      {/* Main App Page Body */}
+      <main className="flex-1 px-4 sm:px-8 py-6 max-w-7xl w-full mx-auto">
+        <Outlet />
+      </main>
 
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto pb-20 md:pb-8">
-          <Outlet />
-        </main>
-
-        <MobileNav />
-      </div>
-
-      {/* Modals & Overlays */}
-      <ReplanModal isOpen={isReplanOpen} onClose={() => setIsReplanOpen(false)} />
+      {/* Modals */}
       <CommandAssistant isOpen={isAssistantOpen} onClose={() => setIsAssistantOpen(false)} />
+      {isHowToUseOpen && (
+        <HowToUseSection isModal onClose={() => setIsHowToUseOpen(false)} />
+      )}
     </div>
   );
 };

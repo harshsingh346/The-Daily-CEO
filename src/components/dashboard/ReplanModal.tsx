@@ -47,7 +47,7 @@ export const ReplanModal: React.FC<ReplanModalProps> = ({ isOpen, onClose }) => 
         {/* Header */}
         <div className="px-6 py-4 border-b border-white/[0.08] flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="p-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+            <div className="p-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400">
               <RefreshCw className="w-4 h-4" />
             </div>
             <div>
@@ -117,7 +117,7 @@ export const ReplanModal: React.FC<ReplanModalProps> = ({ isOpen, onClose }) => 
                   onClick={() => setRemainingMinutes(mins)}
                   className={`py-1.5 text-xs rounded-md border font-mono transition ${
                     remainingMinutes === mins
-                      ? 'bg-indigo-600/20 border-indigo-500/50 text-indigo-300 font-semibold'
+                      ? 'bg-amber-500/20 border-amber-500/50 text-amber-300 font-semibold'
                       : 'bg-white/[0.02] border-white/[0.08] text-slate-400 hover:text-slate-200'
                   }`}
                 >
@@ -132,7 +132,7 @@ export const ReplanModal: React.FC<ReplanModalProps> = ({ isOpen, onClose }) => 
               step={5}
               value={remainingMinutes}
               onChange={(e) => setRemainingMinutes(Number(e.target.value))}
-              className="w-full mt-3 accent-indigo-500"
+              className="w-full mt-3 accent-amber-500"
             />
           </div>
 
@@ -173,7 +173,7 @@ export const ReplanModal: React.FC<ReplanModalProps> = ({ isOpen, onClose }) => 
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-medium transition cursor-pointer shadow-md"
+              className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-black font-semibold text-xs transition cursor-pointer shadow-md"
             >
               {isSubmitting ? (
                 <>

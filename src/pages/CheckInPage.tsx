@@ -176,7 +176,7 @@ export const CheckInPage: React.FC = () => {
                 onClick={() => setAvailableMinutes(pill.value)}
                 className={`py-1.5 text-xs rounded-lg border font-mono transition cursor-pointer ${
                   availableMinutes === pill.value
-                    ? 'bg-indigo-600/20 border-indigo-500/50 text-indigo-200 font-semibold'
+                    ? 'bg-amber-500/20 border-amber-500/50 text-amber-300 font-semibold'
                     : 'bg-white/[0.02] border-white/[0.06] text-slate-400 hover:text-slate-200'
                 }`}
               >
@@ -192,7 +192,7 @@ export const CheckInPage: React.FC = () => {
             step={15}
             value={availableMinutes}
             onChange={(e) => setAvailableMinutes(Number(e.target.value))}
-            className="w-full accent-indigo-500"
+            className="w-full accent-amber-500"
           />
         </div>
 
@@ -206,7 +206,7 @@ export const CheckInPage: React.FC = () => {
             value={obstacles}
             onChange={(e) => setObstacles(e.target.value)}
             placeholder="e.g. Unpredictable slack pings, vendor API rate limits, heavy fatigue after lunch"
-            className="w-full px-3.5 py-2 rounded-lg bg-black/40 border border-white/[0.08] text-xs text-slate-100 placeholder-slate-500 focus:border-indigo-500 transition"
+            className="w-full px-3.5 py-2 rounded-lg bg-black/40 border border-white/[0.08] text-xs text-slate-100 placeholder-slate-500 focus:border-amber-500 transition"
           />
         </div>
 
@@ -220,7 +220,7 @@ export const CheckInPage: React.FC = () => {
             value={urgentCommitments}
             onChange={(e) => setUrgentCommitments(e.target.value)}
             placeholder="e.g. 4:00 PM Board status call"
-            className="w-full px-3.5 py-2 rounded-lg bg-black/40 border border-white/[0.08] text-xs text-slate-100 placeholder-slate-500 focus:border-indigo-500 transition"
+            className="w-full px-3.5 py-2 rounded-lg bg-black/40 border border-white/[0.08] text-xs text-slate-100 placeholder-slate-500 focus:border-amber-500 transition"
           />
         </div>
 
@@ -237,16 +237,16 @@ export const CheckInPage: React.FC = () => {
           <button
             type="submit"
             disabled={isGeneratingPlan}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-semibold transition cursor-pointer shadow-lg active:scale-95"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-black text-xs font-semibold transition cursor-pointer shadow-lg active:scale-95"
           >
             {isGeneratingPlan ? (
               <>
-                <Sparkles className="w-4 h-4 animate-spin text-indigo-200" />
+                <Sparkles className="w-4 h-4 animate-spin text-black" />
                 <span>Formulating Executive Strategy...</span>
               </>
             ) : (
               <>
-                <Sparkles className="w-4 h-4 text-indigo-200" />
+                <Sparkles className="w-4 h-4 text-black" />
                 <span>Generate CEO Daily Plan</span>
                 <ArrowRight className="w-4 h-4 ml-0.5" />
               </>
