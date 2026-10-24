@@ -13,6 +13,8 @@ export interface Profile {
     default_break_minutes?: number;
     ai_provider?: 'builtin' | 'gemini' | 'openai';
     api_key?: string;
+    role?: string;
+    [key: string]: any;
   };
   created_at: string;
   updated_at: string;

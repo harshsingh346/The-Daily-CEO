@@ -23,6 +23,8 @@ import type {
   Decision,
   JournalEntryType,
   Project,
+  PrimaryMission,
+  DecisionFilter,
 } from '../types';
 
 interface DataContextType {
@@ -39,6 +41,9 @@ interface DataContextType {
   isGeneratingPlan: boolean;
   submitCheckin: (checkinData: Omit<DailyCheckin, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'local_date'>) => Promise<DailyPlan>;
   toggleKeyMove: (moveId: string) => Promise<void>;
+  addKeyMove: (title: string, estimatedMinutes?: number, priority?: 1 | 2 | 3, description?: string, timeSlot?: string) => Promise<KeyMove>;
+  deleteKeyMove: (moveId: string) => Promise<void>;
+  updateActivePlanStrategy: (mission: PrimaryMission, filter: DecisionFilter, energyAdvice: string) => Promise<DailyPlan>;
   executeReplan: (changeReason: string, remainingMinutes: number, newEnergy?: number) => Promise<DailyPlan>;
   addGoal: (title: string, description?: string, targetDate?: string) => Promise<void>;
   updateGoalStatus: (goalId: string, status: Goal['status']) => Promise<void>;
@@ -455,7 +460,173 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // 3. Replan Mode
+  // Add Key Move / Command Center Widget without recreating the plan
+  const addKeyMove = async (
+    title: string,
+    estimatedMinutes: number = 45,
+    priority: 1 | 2 | 3 = 2,
+    description?: string,
+    timeSlot?: string
+  ): Promise<KeyMove> => {
+    const currentMoves = activePlan?.key_moves || [];
+    const newMoveId = crypto.randomUUID();
+    const planId = activePlan?.id || crypto.randomUUID();
+    const userId = user?.id || (isGuest ? 'demo-user-id' : 'sample-user');
+
+    const newMove: KeyMove = {
+      id: newMoveId,
+      plan_id: planId,
+      user_id: userId,
+      title: title.trim(),
+      description: description?.trim() || null,
+      priority,
+      estimated_minutes: estimatedMinutes,
+      status: 'pending',
+      completed_at: null,
+      created_at: new Date().toISOString(),
+      completionCriteria: timeSlot?.trim() || undefined,
+    };
+
+    if (activePlan) {
+      const updatedMoves = [...currentMoves, newMove];
+      const updatedPlan: DailyPlan = {
+        ...activePlan,
+        key_moves: updatedMoves,
+      };
+
+      setActivePlan(updatedPlan);
+      setPlanHistory((prev) => prev.map((p) => (p.id === updatedPlan.id ? updatedPlan : p)));
+
+      if (!isGuest && user) {
+        await supabase.from('key_moves').insert({
+          id: newMove.id,
+          plan_id: newMove.plan_id,
+          user_id: newMove.user_id,
+          title: newMove.title,
+          description: newMove.description,
+          priority: newMove.priority,
+          estimated_minutes: newMove.estimated_minutes,
+          status: newMove.status,
+          completed_at: null,
+          created_at: newMove.created_at,
+        });
+      }
+    } else {
+      // Create initial day plan container so widget is permanently retained
+      const newPlan: DailyPlan = {
+        id: planId,
+        user_id: userId,
+        checkin_id: null,
+        local_date: todayDate,
+        version: 1,
+        status: 'active',
+        primary_mission: {
+          title: title.trim(),
+          why: 'Executive priority scheduled directly in Command Center.',
+          successCriteria: 'Widget task executed cleanly.',
+          estimatedMinutes,
+        },
+        decision_filter: {
+          if: 'An unexpected interruption emerges',
+          then: 'Protect scheduled command center focus blocks',
+          ignoreOrDefer: 'Low-impact requests during scheduled focus blocks',
+        },
+        energy_advice: 'Focus intensely during your designated task windows.',
+        shutdown_ritual: ['Review completed key moves', 'Queue tomorrow', 'Disconnect cleanly'],
+        created_at: new Date().toISOString(),
+        key_moves: [newMove],
+      };
+
+      setActivePlan(newPlan);
+      setPlanHistory((prev) => [newPlan, ...prev]);
+
+      if (!isGuest && user) {
+        const { key_moves, ...planRecord } = newPlan;
+        await supabase.from('daily_plans').insert(planRecord);
+        await supabase.from('key_moves').insert({
+          id: newMove.id,
+          plan_id: newMove.plan_id,
+          user_id: newMove.user_id,
+          title: newMove.title,
+          description: newMove.description,
+          priority: newMove.priority,
+          estimated_minutes: newMove.estimated_minutes,
+          status: newMove.status,
+          completed_at: null,
+          created_at: newMove.created_at,
+        });
+      }
+    }
+
+    return newMove;
+  };
+
+  // Delete a Key Move / Command Center Widget
+  const deleteKeyMove = async (moveId: string) => {
+    if (!activePlan || !activePlan.key_moves) return;
+
+    const updatedMoves = activePlan.key_moves.filter((m) => m.id !== moveId);
+    const updatedPlan: DailyPlan = {
+      ...activePlan,
+      key_moves: updatedMoves,
+    };
+
+    setActivePlan(updatedPlan);
+    setPlanHistory((prev) => prev.map((p) => (p.id === updatedPlan.id ? updatedPlan : p)));
+
+    if (!isGuest && user) {
+      await supabase.from('key_moves').delete().eq('id', moveId);
+    }
+  };
+
+  // 3. Adopt or update the active strategic blueprint
+  const updateActivePlanStrategy = async (
+    mission: PrimaryMission,
+    filter: DecisionFilter,
+    energyAdvice: string
+  ): Promise<DailyPlan> => {
+    const planId = activePlan?.id || crypto.randomUUID();
+    const userId = user?.id || (isGuest ? 'demo-user-id' : 'sample-user');
+
+    const updatedPlan: DailyPlan = activePlan
+      ? {
+          ...activePlan,
+          primary_mission: mission,
+          decision_filter: filter,
+          energy_advice: energyAdvice,
+          version: (activePlan.version || 1) + 1,
+        }
+      : {
+          id: planId,
+          user_id: userId,
+          checkin_id: null,
+          local_date: todayDate,
+          version: 1,
+          status: 'active',
+          primary_mission: mission,
+          decision_filter: filter,
+          energy_advice: energyAdvice,
+          shutdown_ritual: [
+            'Review completed focus blocks',
+            'Queue tomorrow’s primary objective',
+            'Disconnect completely to recharge cognitive stamina',
+          ],
+          created_at: new Date().toISOString(),
+          key_moves: [],
+        };
+
+    setActivePlan(updatedPlan);
+    setPlanHistory((prev) => [updatedPlan, ...prev.filter((p) => p.id !== updatedPlan.id)]);
+
+    if (!isGuest && user) {
+      const { key_moves, ...planRecord } = updatedPlan;
+      await supabase.from('daily_plans').upsert(planRecord);
+    }
+
+    return updatedPlan;
+  };
+
+  // 4. Replan Mode
   const executeReplan = async (
     changeReason: string,
     remainingMinutes: number,
@@ -752,6 +923,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isGeneratingPlan,
         submitCheckin,
         toggleKeyMove,
+        addKeyMove,
+        deleteKeyMove,
+        updateActivePlanStrategy,
         executeReplan,
         addGoal,
         updateGoalStatus,

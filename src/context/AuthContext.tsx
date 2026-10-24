@@ -14,10 +14,16 @@ interface AuthContextType {
     email: string,
     password: string,
     displayName?: string
-  ) => Promise<{ error: Error | null; data?: any; requiresEmailConfirmation?: boolean }>;
+  ) => Promise<{
+    error: Error | null;
+    data?: any;
+    requiresEmailConfirmation?: boolean;
+    userAlreadyExists?: boolean;
+  }>;
   resendConfirmationEmail: (email: string) => Promise<{ error: Error | null; data?: any }>;
   verifyOtp: (email: string, token: string) => Promise<{ error: Error | null; data?: any }>;
   resetPassword: (email: string) => Promise<{ error: Error | null }>;
+  updatePassword: (newPassword: string) => Promise<{ error: Error | null; data?: any }>;
   signInWithGoogle: () => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   continueAsDemoUser: () => void;
@@ -143,7 +149,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .upsert(newProfile)
           .select()
           .single();
-        if (inserted) setProfile(inserted as Profile);
+        if (inserted) {
+          setProfile(inserted as Profile);
+        } else {
+          setProfile(newProfile as Profile);
+        }
       }
     } catch (err) {
       console.warn('Profile fetch exception:', err);
@@ -193,7 +203,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) {
         setIsLoading(false);
-        return { error, data: null, requiresEmailConfirmation: false };
+        return { error, data: null, requiresEmailConfirmation: false, userAlreadyExists: false };
+      }
+
+      // Check if user already exists:
+      // When email enumeration protection is on, Supabase returns a user object
+      // with identities: [] (empty array) and does NOT send any confirmation email.
+      const userAlreadyExists = Boolean(
+        data?.user &&
+        Array.isArray(data.user.identities) &&
+        data.user.identities.length === 0
+      );
+
+      if (userAlreadyExists) {
+        setIsLoading(false);
+        return {
+          error: new Error(
+            'An account with this email address already exists. Please sign in or reset your password.'
+          ),
+          data,
+          requiresEmailConfirmation: false,
+          userAlreadyExists: true,
+        };
       }
 
       // If Supabase has email confirmation enabled, data.user is created but data.session is null
@@ -211,10 +242,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       setIsLoading(false);
-      return { error: null, data, requiresEmailConfirmation };
+      return { error: null, data, requiresEmailConfirmation, userAlreadyExists: false };
     } catch (err: any) {
       setIsLoading(false);
-      return { error: err, data: null, requiresEmailConfirmation: false };
+      return { error: err, data: null, requiresEmailConfirmation: false, userAlreadyExists: false };
     }
   }
 
@@ -263,13 +294,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   async function resetPassword(email: string) {
     try {
-      const redirectUrl = `${window.location.origin}/`;
+      const redirectUrl = `${window.location.origin}/login#type=recovery`;
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
         redirectTo: redirectUrl,
       });
       return { error };
     } catch (err: any) {
       return { error: err };
+    }
+  }
+
+  async function updatePassword(newPassword: string) {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+      setIsLoading(false);
+      return { data, error };
+    } catch (err: any) {
+      setIsLoading(false);
+      return { data: null, error: err };
     }
   }
 
@@ -313,11 +358,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }
 
   async function updateProfile(updates: Partial<Profile>) {
-    if (!profile) return;
-    const merged = { ...profile, ...updates, updated_at: new Date().toISOString() };
+    const baseProfile: Profile = profile || {
+      id: user?.id || (isGuest ? 'demo-user-id' : ''),
+      display_name:
+        user?.user_metadata?.full_name ||
+        user?.email?.split('@')[0] ||
+        (isGuest ? 'Alex Vance (Demo)' : 'Executive'),
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Kolkata',
+      preferences: {},
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    const merged = { ...baseProfile, ...updates, updated_at: new Date().toISOString() };
     setProfile(merged);
+
     if (!isGuest && user) {
-      await supabase.from('profiles').update(updates).eq('id', user.id);
+      try {
+        const { error } = await supabase.from('profiles').upsert({
+          id: user.id,
+          display_name: merged.display_name,
+          timezone: merged.timezone,
+          preferences: merged.preferences,
+          updated_at: merged.updated_at,
+        });
+        if (error) {
+          console.warn('Profile upsert error:', error);
+        }
+      } catch (err) {
+        console.warn('Profile upsert exception:', err);
+      }
     }
   }
 
@@ -334,6 +403,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         resendConfirmationEmail,
         verifyOtp,
         resetPassword,
+        updatePassword,
         signInWithGoogle,
         signOut,
         continueAsDemoUser,

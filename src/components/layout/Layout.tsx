@@ -4,10 +4,12 @@ import { ExecutiveHeader } from './ExecutiveHeader';
 import { DesignBackground } from './DesignBackground';
 import { CommandAssistant } from '../talk/CommandAssistant';
 import { HowToUseSection } from '../common/HowToUseSection';
+import { GmailReminderModal } from '../dashboard/GmailReminderModal';
 
 export const Layout: React.FC = () => {
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
   const [isHowToUseOpen, setIsHowToUseOpen] = useState(false);
+  const [isGmailReminderOpen, setIsGmailReminderOpen] = useState(false);
 
   // Global keyboard shortcuts (⌘K or Ctrl+K for assistant)
   useEffect(() => {
@@ -27,10 +29,11 @@ export const Layout: React.FC = () => {
       <DesignBackground />
 
       {/* 2. Top Floating Executive Header */}
-      <div className="relative z-20">
+      <div className="relative z-30">
         <ExecutiveHeader
           onOpenAssistant={() => setIsAssistantOpen(true)}
           onOpenHowToUse={() => setIsHowToUseOpen(true)}
+          onOpenGmailReminder={() => setIsGmailReminderOpen(true)}
         />
       </div>
 
@@ -44,6 +47,10 @@ export const Layout: React.FC = () => {
       {isHowToUseOpen && (
         <HowToUseSection isModal onClose={() => setIsHowToUseOpen(false)} />
       )}
+      <GmailReminderModal
+        isOpen={isGmailReminderOpen}
+        onClose={() => setIsGmailReminderOpen(false)}
+      />
     </div>
   );
 };

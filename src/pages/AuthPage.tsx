@@ -24,7 +24,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { DesignBackground } from '../components/layout/DesignBackground';
 
-type AuthView = 'signin' | 'signup' | 'confirm_gmail' | 'forgot_password';
+type AuthView = 'signin' | 'signup' | 'confirm_gmail' | 'forgot_password' | 'update_password';
 
 export const AuthPage: React.FC = () => {
   const navigate = useNavigate();
@@ -35,6 +35,7 @@ export const AuthPage: React.FC = () => {
     resendConfirmationEmail,
     verifyOtp,
     resetPassword,
+    updatePassword,
     signInWithGoogle,
     continueAsDemoUser,
     user,
@@ -50,6 +51,11 @@ export const AuthPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  // New Password State (for recovery)
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+
   // Gmail Confirmation State
   const [pendingEmail, setPendingEmail] = useState('');
   const [otpToken, setOtpToken] = useState('');
@@ -64,11 +70,18 @@ export const AuthPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [unconfirmedEmailPrompt, setUnconfirmedEmailPrompt] = useState(false);
+  const [existingUserPrompt, setExistingUserPrompt] = useState(false);
 
   // Check URL hash / queries for verification or reset
   useEffect(() => {
     const hash = window.location.hash;
     const search = window.location.search;
+
+    if (hash.includes('type=recovery')) {
+      setView('update_password');
+      setSuccessMsg('Reset authorization confirmed. Enter your new password below.');
+      return;
+    }
 
     if (hash.includes('access_token') || search.includes('code')) {
       setSuccessMsg('Email confirmed successfully! Initializing your Executive Dashboard...');
@@ -79,12 +92,12 @@ export const AuthPage: React.FC = () => {
     }
   }, [navigate]);
 
-  // If already authenticated with real account, redirect to dashboard
+  // If already authenticated with real account, redirect to dashboard (unless setting new password)
   useEffect(() => {
-    if (user && !isGuest) {
+    if (user && !isGuest && view !== 'update_password') {
       navigate('/');
     }
-  }, [user, isGuest, navigate]);
+  }, [user, isGuest, navigate, view]);
 
   // Resend cooldown timer countdown
   useEffect(() => {
@@ -100,6 +113,7 @@ export const AuthPage: React.FC = () => {
     setError(null);
     setSuccessMsg(null);
     setUnconfirmedEmailPrompt(false);
+    setExistingUserPrompt(false);
 
     if (view === 'signup') {
       if (password !== confirmPassword) {
@@ -113,13 +127,19 @@ export const AuthPage: React.FC = () => {
 
       setLoading(true);
       try {
-        const { error: signUpErr, requiresEmailConfirmation } = await signUp(
+        const { error: signUpErr, requiresEmailConfirmation, userAlreadyExists } = await signUp(
           email,
           password,
           fullName
         );
 
-        if (signUpErr) {
+        if (userAlreadyExists) {
+          setExistingUserPrompt(true);
+          setPendingEmail(email);
+          setError(
+            `An account with ${email} is already registered. Please sign in with your password, or click "Reset Password" if you forgot it.`
+          );
+        } else if (signUpErr) {
           setError(signUpErr.message);
         } else if (requiresEmailConfirmation) {
           setPendingEmail(email);
@@ -237,6 +257,32 @@ export const AuthPage: React.FC = () => {
     }
   };
 
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword !== confirmNewPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
+    if (newPassword.length < 6) {
+      setError('Password must be at least 6 characters.');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      const { error: updateErr } = await updatePassword(newPassword);
+      if (updateErr) {
+        setError(updateErr.message);
+      } else {
+        setSuccessMsg('Password updated successfully! Welcome to The Daily CEO.');
+        setTimeout(() => navigate('/'), 1200);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDemoAccess = () => {
     continueAsDemoUser();
     navigate('/');
@@ -248,7 +294,7 @@ export const AuthPage: React.FC = () => {
       <DesignBackground />
 
       {/* Main Auth Container Card */}
-      <div className="w-full max-w-5xl rounded-3xl bg-[#0e1017]/95 border border-white/[0.08] shadow-[0_20px_70px_rgba(0,0,0,0.85)] relative z-10 overflow-hidden flex flex-col">
+      <div className="w-full max-w-5xl rounded-3xl card-ceo backdrop-blur-2xl border border-white/[0.12] border-t-white/[0.25] shadow-[0_25px_80px_rgba(0,0,0,0.7),inset_0_1px_1px_rgba(255,255,255,0.2)] relative z-10 overflow-hidden flex flex-col">
         {/* Top Header of Card */}
         <div className="px-6 sm:px-8 py-5 border-b border-white/[0.06] flex items-center justify-between">
           {/* Logo & Subtitle */}
@@ -482,7 +528,44 @@ export const AuthPage: React.FC = () => {
           {/* Right Column: Dynamic Form Area */}
           <div className="flex flex-col justify-center py-2 px-1 sm:px-4 space-y-5">
             {/* Notification Alerts */}
-            {error && (
+            {existingUserPrompt && (
+              <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-200 space-y-2.5 animate-fade-in shadow-lg">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span className="font-semibold text-slate-100">Account Already Registered</span>
+                </div>
+                <p className="text-slate-300">
+                  An account with <span className="font-mono text-amber-300 font-semibold">{pendingEmail || email}</span> already exists and is active. You do not need to sign up again!
+                </p>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setView('signin');
+                      setError(null);
+                      setExistingUserPrompt(false);
+                    }}
+                    className="px-3 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-300 text-black font-semibold text-xs transition cursor-pointer"
+                  >
+                    Sign In to Account →
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setForgotEmail(pendingEmail || email);
+                      setView('forgot_password');
+                      setError(null);
+                      setExistingUserPrompt(false);
+                    }}
+                    className="px-3 py-1.5 rounded-lg bg-white/[0.08] hover:bg-white/[0.14] text-slate-200 text-xs transition cursor-pointer"
+                  >
+                    Reset Password
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {error && !existingUserPrompt && (
               <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-start gap-2.5 animate-fade-in">
                 <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-400" />
                 <div className="space-y-1">
@@ -536,19 +619,19 @@ export const AuthPage: React.FC = () => {
                     <span className="w-5 h-5 rounded-full bg-amber-500/20 text-amber-400 text-[11px] font-bold flex items-center justify-center">
                       1
                     </span>
-                    <span>Open your Gmail inbox (or spam folder)</span>
+                    <span>Open your Gmail inbox (or Spam / Junk folder)</span>
                   </div>
                   <div className="flex items-center gap-2 text-slate-200 font-medium">
                     <span className="w-5 h-5 rounded-full bg-amber-500/20 text-amber-400 text-[11px] font-bold flex items-center justify-center">
                       2
                     </span>
-                    <span>Click the "Confirm your mail" link to activate</span>
+                    <span>Click the <strong className="text-amber-300">"Confirm your mail"</strong> link to log in directly</span>
                   </div>
                   <div className="flex items-center gap-2 text-slate-200 font-medium">
                     <span className="w-5 h-5 rounded-full bg-amber-500/20 text-amber-400 text-[11px] font-bold flex items-center justify-center">
                       3
                     </span>
-                    <span>Or enter the 6-digit confirmation token below</span>
+                    <span>Or enter the 6-digit confirmation code below (if provided)</span>
                   </div>
                 </div>
 
@@ -687,6 +770,73 @@ export const AuthPage: React.FC = () => {
                     ← Return to Sign In
                   </button>
                 </div>
+              </div>
+            )}
+
+            {/* VIEW 3: UPDATE PASSWORD (AFTER RECOVERY LINK) */}
+            {view === 'update_password' && (
+              <div className="space-y-4 animate-fade-in">
+                <div>
+                  <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-100 flex items-center gap-2">
+                    <span>Create New</span>
+                    <span className="text-gold-gradient">Password</span>
+                  </h2>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Your recovery link has been verified. Choose a new secure password for your account.
+                  </p>
+                </div>
+
+                <form onSubmit={handleUpdatePassword} className="space-y-3.5">
+                  <div>
+                    <label className="text-[11px] font-mono text-slate-300 uppercase tracking-wider block mb-1">
+                      New Password
+                    </label>
+                    <div className="relative">
+                      <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type={showNewPassword ? 'text' : 'password'}
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="At least 6 characters"
+                        className="w-full pl-10 pr-10 py-3 rounded-xl bg-[#090b10] border border-white/[0.08] text-xs text-slate-100 placeholder-slate-400 focus:border-amber-500 transition"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPassword(!showNewPassword)}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 cursor-pointer"
+                      >
+                        {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-mono text-slate-300 uppercase tracking-wider block mb-1">
+                      Confirm New Password
+                    </label>
+                    <div className="relative">
+                      <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type={showNewPassword ? 'text' : 'password'}
+                        value={confirmNewPassword}
+                        onChange={(e) => setConfirmNewPassword(e.target.value)}
+                        placeholder="Repeat new password"
+                        className="w-full pl-10 pr-4 py-3 rounded-xl bg-[#090b10] border border-white/[0.08] text-xs text-slate-100 placeholder-slate-400 focus:border-amber-500 transition"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-amber-400 via-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 disabled:opacity-50 text-black font-semibold text-xs shadow-lg transition-all duration-200 cursor-pointer flex items-center justify-center gap-2 active:scale-95 mt-2"
+                  >
+                    <span>{loading ? 'Saving New Password...' : 'Save Password & Enter Dashboard'}</span>
+                    <ArrowRight className="w-4 h-4 stroke-[2.5]" />
+                  </button>
+                </form>
               </div>
             )}
 

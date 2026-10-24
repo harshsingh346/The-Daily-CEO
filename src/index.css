@@ -45,25 +45,117 @@
   background: rgba(229, 169, 60, 0.4);
 }
 
-/* Executive Card & Glass Styles matching reference */
-.card-ceo {
-  background: linear-gradient(180deg, rgba(17, 19, 26, 0.95) 0%, rgba(13, 15, 21, 0.98) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.6), inset 0 1px 0 0 rgba(255, 255, 255, 0.04);
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+/* Executive Frosted Glass & Specular Shine Styles */
+.card-ceo,
+.card-executive,
+.card-glass {
+  position: relative;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(18, 22, 34, 0.62) 40%,
+    rgba(10, 13, 21, 0.78) 100%
+  ) !important;
+  backdrop-filter: blur(20px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.22) !important;
+  box-shadow: 
+    0 10px 32px -4px rgba(0, 0, 0, 0.55),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.16),
+    inset 0 0 20px 0 rgba(255, 255, 255, 0.02) !important;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
 }
 
-.card-ceo:hover {
-  border-color: rgba(255, 255, 255, 0.15);
+/* Glass specular top reflection lip */
+.card-ceo::before,
+.card-executive::before,
+.card-glass::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 42%;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.07) 0%,
+    rgba(255, 255, 255, 0.015) 50%,
+    transparent 100%
+  );
+  border-top-left-radius: inherit;
+  border-top-right-radius: inherit;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Subtle angled light shine beam on cards */
+.card-ceo::after,
+.card-executive::after,
+.card-glass::after {
+  content: '';
+  position: absolute;
+  top: -60%;
+  left: -80%;
+  width: 260%;
+  height: 220%;
+  background: linear-gradient(
+    110deg,
+    transparent 42%,
+    rgba(255, 255, 255, 0.03) 46%,
+    rgba(254, 240, 138, 0.12) 50%,
+    rgba(255, 255, 255, 0.04) 54%,
+    transparent 58%
+  );
+  transform: rotate(18deg);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  z-index: 2;
+}
+
+.card-ceo:hover,
+.card-executive:hover,
+.card-glass:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(24, 29, 44, 0.68) 40%,
+    rgba(14, 18, 28, 0.82) 100%
+  ) !important;
+  border-color: rgba(245, 158, 11, 0.35) !important;
+  border-top-color: rgba(255, 255, 255, 0.38) !important;
+  box-shadow: 
+    0 16px 42px -6px rgba(0, 0, 0, 0.65),
+    0 0 25px -4px rgba(245, 158, 11, 0.16),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.3) !important;
+  transform: translateY(-1.5px);
+}
+
+.card-ceo:hover::after,
+.card-executive:hover::after,
+.card-glass:hover::after {
+  opacity: 1;
+  animation: cardGlassShine 1.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes cardGlassShine {
+  0% {
+    transform: translateX(-40%) rotate(18deg);
+  }
+  100% {
+    transform: translateX(45%) rotate(18deg);
+  }
 }
 
 .card-interactive {
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .card-interactive:hover {
-  transform: translateY(-1px);
-  border-color: rgba(229, 169, 60, 0.35);
-  box-shadow: 0 12px 30px -5px rgba(0, 0, 0, 0.7), 0 0 20px -3px rgba(229, 169, 60, 0.12);
+  transform: translateY(-2px);
+  border-color: rgba(229, 169, 60, 0.4) !important;
+  box-shadow: 0 16px 36px -6px rgba(0, 0, 0, 0.7), 0 0 25px -2px rgba(229, 169, 60, 0.18) !important;
 }
 
 /* Gold Gradient Text */

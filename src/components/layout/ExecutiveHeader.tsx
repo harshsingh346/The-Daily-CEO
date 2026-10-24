@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   Bell,
@@ -12,23 +12,61 @@ import {
   LogOut,
   HelpCircle,
   Zap,
+  User as UserIcon,
+  CheckCircle2,
+  ExternalLink,
+  Mail,
+  AlertTriangle,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
+import { analyzePendingTasks } from '../../lib/reminderService';
 
 interface ExecutiveHeaderProps {
   onOpenAssistant: () => void;
   onOpenHowToUse: () => void;
+  onOpenGmailReminder?: () => void;
 }
 
 export const ExecutiveHeader: React.FC<ExecutiveHeaderProps> = ({
   onOpenAssistant,
   onOpenHowToUse,
+  onOpenGmailReminder,
 }) => {
   const navigate = useNavigate();
   const { profile, user, isGuest, signOut } = useAuth();
   const { activePlan } = useData();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isAlertsOpen, setIsAlertsOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+  const alertsRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown on click outside or escape key
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setIsUserMenuOpen(false);
+      }
+      if (alertsRef.current && !alertsRef.current.contains(event.target as Node)) {
+        setIsAlertsOpen(false);
+      }
+    }
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setIsUserMenuOpen(false);
+        setIsAlertsOpen(false);
+      }
+    }
+
+    if (isUserMenuOpen || isAlertsOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleKeyDown);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isUserMenuOpen, isAlertsOpen]);
 
   const userName =
     profile?.display_name ||
@@ -42,10 +80,15 @@ export const ExecutiveHeader: React.FC<ExecutiveHeaderProps> = ({
   const completedMoves = keyMoves.filter((m) => m.status === 'completed').length;
   const totalMoves = keyMoves.length || 3;
 
+  const taskAnalysis = analyzePendingTasks(keyMoves, profile);
+  const alertCount = taskAnalysis.missedTasks.length + (taskAnalysis.isOverCapacity ? 1 : 0);
+
   return (
     <header className="w-full pt-4 px-4 sm:px-8 max-w-7xl mx-auto">
-      {/* Floating Rounded Navbar Container matching reference image */}
-      <div className="h-16 rounded-2xl bg-[#0c0e14]/90 backdrop-blur-md border border-white/[0.08] px-4 sm:px-6 flex items-center justify-between shadow-2xl relative z-40">
+      {/* Floating Rounded Navbar Container with Frosted Glass (overflow visible so dropdowns aren't clipped) */}
+      <div className="h-16 rounded-2xl relative z-40 flex items-center justify-between px-4 sm:px-6 shadow-2xl">
+        {/* Glass specular background layer with shine confined internally */}
+        <div className="absolute inset-0 rounded-2xl card-ceo pointer-events-none -z-10" />
         {/* Left: Brand Logo & Title */}
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>
           {/* Golden Geometric Emblem matching reference */}
@@ -189,21 +232,114 @@ export const ExecutiveHeader: React.FC<ExecutiveHeaderProps> = ({
             </button>
           )}
 
-          {/* Notification Bell with Amber Dot */}
-          <button
-            onClick={onOpenAssistant}
-            className="w-9 h-9 rounded-full bg-white/[0.04] border border-white/[0.08] hover:border-amber-500/30 flex items-center justify-center text-slate-300 relative transition cursor-pointer"
-            aria-label="Notifications"
-          >
-            <Bell className="w-4 h-4" />
-            <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-amber-400 ring-2 ring-[#0c0e14] shadow-[0_0_6px_rgba(245,158,11,0.8)]" />
-          </button>
+          {/* Notification Bell with Amber/Rose Alert Badge and Quick Dropdown */}
+          <div className="relative" ref={alertsRef}>
+            <button
+              onClick={() => setIsAlertsOpen(!isAlertsOpen)}
+              aria-expanded={isAlertsOpen}
+              className={`w-9 h-9 rounded-full flex items-center justify-center relative transition cursor-pointer ${
+                isAlertsOpen
+                  ? 'bg-white/[0.1] border border-amber-400/50 shadow-[0_0_12px_rgba(245,158,11,0.3)] text-amber-300'
+                  : alertCount > 0
+                  ? 'bg-rose-500/10 border border-rose-500/40 hover:border-rose-400 text-rose-300 shadow-[0_0_10px_rgba(244,63,94,0.25)]'
+                  : 'bg-white/[0.04] border border-white/[0.08] hover:border-amber-500/30 text-slate-300'
+              }`}
+              aria-label="Executive Task Alerts"
+              title={alertCount > 0 ? `${alertCount} task alert(s) pending` : 'Executive Notifications'}
+            >
+              <Bell className="w-4 h-4" />
+              {alertCount > 0 ? (
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-[9px] font-bold text-white flex items-center justify-center ring-2 ring-[#0c0e14] shadow-[0_0_8px_rgba(244,63,94,0.9)] animate-pulse">
+                  {alertCount}
+                </span>
+              ) : (
+                <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-amber-400 ring-2 ring-[#0c0e14] shadow-[0_0_6px_rgba(245,158,11,0.8)]" />
+              )}
+            </button>
 
-          {/* User Profile Pill */}
-          <div className="relative">
+            {/* Alerts Dropdown */}
+            {isAlertsOpen && (
+              <div className="absolute right-0 top-full mt-2 w-80 rounded-2xl bg-[#0e121b]/95 backdrop-blur-2xl border border-white/[0.12] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.85),0_0_20px_rgba(245,158,11,0.1)] p-3.5 z-50 animate-fade-in text-xs space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b border-white/[0.08]">
+                  <div className="flex items-center gap-2">
+                    <span className="p-1 rounded bg-amber-500/10 border border-amber-500/20 text-amber-400">
+                      <Bell className="w-3.5 h-3.5" />
+                    </span>
+                    <span className="font-semibold text-slate-100">Executive Task Monitor</span>
+                  </div>
+                  <span className="text-[10px] font-mono text-slate-400">
+                    {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+
+                {alertCount > 0 ? (
+                  <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 space-y-2">
+                    <div className="flex items-center gap-1.5 text-rose-300 font-semibold text-[11px]">
+                      <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                      <span>Action Required: Attention Needed</span>
+                    </div>
+                    <ul className="text-[11px] text-slate-300 space-y-1 list-disc list-inside">
+                      {taskAnalysis.missedTasks.length > 0 && (
+                        <li>
+                          <strong className="text-rose-300">{taskAnalysis.missedTasks.length} task(s)</strong> have passed their scheduled slot.
+                        </li>
+                      )}
+                      {taskAnalysis.isOverCapacity && (
+                        <li>
+                          Workday capacity alert: <strong className="text-amber-300">{taskAnalysis.totalPendingMinutes}m</strong> pending vs only <strong className="text-amber-300">{taskAnalysis.remainingMinutesInWorkday}m</strong> remaining.
+                        </li>
+                      )}
+                    </ul>
+                  </div>
+                ) : (
+                  <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-slate-300 space-y-1">
+                    <div className="flex items-center gap-1.5 text-emerald-300 font-semibold">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Execution On Schedule</span>
+                    </div>
+                    <p className="text-slate-400 text-[10px]">
+                      {taskAnalysis.pendingTasks.length} pending task(s) currently within executive parameters.
+                    </p>
+                  </div>
+                )}
+
+                <div className="pt-1 flex flex-col gap-2">
+                  <button
+                    onClick={() => {
+                      setIsAlertsOpen(false);
+                      onOpenGmailReminder?.();
+                    }}
+                    className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-bold text-xs flex items-center justify-center gap-2 shadow-[0_0_12px_rgba(245,158,11,0.3)] cursor-pointer transition"
+                  >
+                    <Mail className="w-3.5 h-3.5" />
+                    <span>Send Reminder to Gmail</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setIsAlertsOpen(false);
+                      onOpenAssistant();
+                    }}
+                    className="w-full py-1.5 px-3 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 hover:text-slate-100 font-medium text-xs flex items-center justify-center gap-1.5 border border-white/[0.08] cursor-pointer transition"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Ask Chief of Staff AI</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* User Profile Pill & Dropdown */}
+          <div className="relative" ref={userMenuRef}>
             <button
               onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-              className="flex items-center gap-2 pl-1.5 pr-2.5 py-1 rounded-full bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.08] transition cursor-pointer select-none"
+              aria-expanded={isUserMenuOpen}
+              className={`flex items-center gap-2 pl-1.5 pr-2.5 py-1 rounded-full transition cursor-pointer select-none border ${
+                isUserMenuOpen
+                  ? 'bg-white/[0.1] border-amber-400/50 shadow-[0_0_12px_rgba(245,158,11,0.25)]'
+                  : 'bg-white/[0.04] hover:bg-white/[0.08] border-white/[0.08] hover:border-amber-500/30'
+              }`}
             >
               <div className="w-7 h-7 rounded-full bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center text-xs font-bold text-white shadow-inner overflow-hidden border border-amber-300/40">
                 <span>{userInitial}</span>
@@ -211,42 +347,71 @@ export const ExecutiveHeader: React.FC<ExecutiveHeaderProps> = ({
               <span className="text-xs font-medium text-slate-200 hidden sm:inline capitalize">
                 {userName}
               </span>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+              <ChevronDown
+                className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
+                  isUserMenuOpen ? 'rotate-180 text-amber-400' : ''
+                }`}
+              />
             </button>
 
             {/* Dropdown Menu */}
             {isUserMenuOpen && (
-              <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-[#12151d] border border-white/[0.1] shadow-2xl py-2.5 z-50 animate-fade-in text-xs">
-                {/* Profile Card Header */}
-                <div className="px-3.5 py-2.5 border-b border-white/[0.06] space-y-1">
+              <div className="absolute right-0 top-full mt-2 w-72 rounded-2xl bg-[#0e121b]/95 backdrop-blur-2xl border border-white/[0.12] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.85),0_0_20px_rgba(245,158,11,0.08)] py-2.5 z-50 animate-fade-in text-xs">
+                {/* Profile Card Header (Clickable to go to Settings) */}
+                <div
+                  onClick={() => {
+                    setIsUserMenuOpen(false);
+                    navigate('/settings');
+                  }}
+                  className="px-3.5 py-3 border-b border-white/[0.08] space-y-1.5 hover:bg-white/[0.03] transition cursor-pointer group"
+                >
                   <div className="flex items-center justify-between">
-                    <p className="font-bold text-slate-100 truncate text-sm capitalize">{userName}</p>
-                    {!isGuest && user && (
-                      <span className="px-1.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-mono font-medium">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center text-xs font-bold text-white shadow-inner border border-amber-300/40">
+                        {userInitial}
+                      </div>
+                      <div>
+                        <p className="font-bold text-slate-100 truncate text-sm capitalize group-hover:text-amber-300 transition">
+                          {userName}
+                        </p>
+                        <p className="text-[11px] text-amber-300/90 truncate font-mono">
+                          {isGuest ? 'Demo Workspace' : user?.email}
+                        </p>
+                      </div>
+                    </div>
+                    {!isGuest && user ? (
+                      <span className="px-1.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[9px] font-mono font-medium flex items-center gap-1">
+                        <CheckCircle2 className="w-2.5 h-2.5" />
                         Verified
+                      </span>
+                    ) : (
+                      <span className="px-1.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 text-[9px] font-mono font-medium">
+                        Sandbox
                       </span>
                     )}
                   </div>
-                  <p className="text-[11px] text-amber-300/90 truncate font-mono">
-                    {isGuest ? 'Demo Workspace' : user?.email}
-                  </p>
-                  <div className="pt-1 flex items-center gap-1.5 text-[10px] text-slate-400 font-mono">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    <span>{isGuest ? 'Instant Sandbox' : 'Supabase Cloud Synced'}</span>
+                  <div className="pt-1 flex items-center justify-between text-[10px] text-slate-400 font-mono">
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      <span>{isGuest ? 'Instant Sandbox Mode' : 'Supabase Cloud Synced'}</span>
+                    </div>
+                    <span className="text-amber-400/90 group-hover:text-amber-300 flex items-center gap-0.5">
+                      Edit Profile &rarr;
+                    </span>
                   </div>
                 </div>
 
                 {/* Live User Data Quick Stats */}
                 <div className="px-3 py-2 bg-white/[0.02] border-b border-white/[0.06] grid grid-cols-3 gap-2 text-center text-[10px]">
-                  <div className="p-1 rounded bg-black/30 border border-white/[0.04]">
+                  <div className="p-1 rounded bg-black/40 border border-white/[0.04]">
                     <div className="text-amber-400 font-bold text-xs">{goals.length}</div>
                     <div className="text-slate-400">Goals</div>
                   </div>
-                  <div className="p-1 rounded bg-black/30 border border-white/[0.04]">
+                  <div className="p-1 rounded bg-black/40 border border-white/[0.04]">
                     <div className="text-amber-400 font-bold text-xs">{projects.length}</div>
                     <div className="text-slate-400">Projects</div>
                   </div>
-                  <div className="p-1 rounded bg-black/30 border border-white/[0.04]">
+                  <div className="p-1 rounded bg-black/40 border border-white/[0.04]">
                     <div className="text-amber-400 font-bold text-xs">{completedMoves}/{totalMoves}</div>
                     <div className="text-slate-400">Priorities</div>
                   </div>
@@ -256,9 +421,20 @@ export const ExecutiveHeader: React.FC<ExecutiveHeaderProps> = ({
                   <button
                     onClick={() => {
                       setIsUserMenuOpen(false);
+                      navigate('/settings');
+                    }}
+                    className="w-full px-3.5 py-2 text-left text-slate-200 hover:text-white hover:bg-amber-500/10 flex items-center gap-2.5 font-medium transition"
+                  >
+                    <Settings className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Executive Profile & Settings</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setIsUserMenuOpen(false);
                       navigate('/projects');
                     }}
-                    className="w-full px-3.5 py-2 text-left text-slate-300 hover:text-white hover:bg-white/[0.05] flex items-center gap-2"
+                    className="w-full px-3.5 py-2 text-left text-slate-300 hover:text-white hover:bg-white/[0.05] flex items-center gap-2.5 transition"
                   >
                     <Zap className="w-3.5 h-3.5 text-amber-400" />
                     <span>Active Projects ({projects.length})</span>
@@ -269,7 +445,7 @@ export const ExecutiveHeader: React.FC<ExecutiveHeaderProps> = ({
                       setIsUserMenuOpen(false);
                       navigate('/goals');
                     }}
-                    className="w-full px-3.5 py-2 text-left text-slate-300 hover:text-white hover:bg-white/[0.05] flex items-center gap-2"
+                    className="w-full px-3.5 py-2 text-left text-slate-300 hover:text-white hover:bg-white/[0.05] flex items-center gap-2.5 transition"
                   >
                     <BarChart3 className="w-3.5 h-3.5 text-emerald-400" />
                     <span>Executive Goals ({goals.length})</span>
@@ -280,10 +456,10 @@ export const ExecutiveHeader: React.FC<ExecutiveHeaderProps> = ({
                       setIsUserMenuOpen(false);
                       navigate('/journal');
                     }}
-                    className="w-full px-3.5 py-2 text-left text-slate-300 hover:text-white hover:bg-white/[0.05] flex items-center gap-2"
+                    className="w-full px-3.5 py-2 text-left text-slate-300 hover:text-white hover:bg-white/[0.05] flex items-center gap-2.5 transition"
                   >
                     <BookOpen className="w-3.5 h-3.5 text-sky-400" />
-                    <span>CEO Journal</span>
+                    <span>CEO Strategic Journal</span>
                   </button>
 
                   <button
@@ -291,7 +467,7 @@ export const ExecutiveHeader: React.FC<ExecutiveHeaderProps> = ({
                       setIsUserMenuOpen(false);
                       navigate('/decision-room');
                     }}
-                    className="w-full px-3.5 py-2 text-left text-slate-300 hover:text-white hover:bg-white/[0.05] flex items-center gap-2"
+                    className="w-full px-3.5 py-2 text-left text-slate-300 hover:text-white hover:bg-white/[0.05] flex items-center gap-2.5 transition"
                   >
                     <Compass className="w-3.5 h-3.5 text-indigo-400" />
                     <span>Decision Room</span>
@@ -302,21 +478,10 @@ export const ExecutiveHeader: React.FC<ExecutiveHeaderProps> = ({
                       setIsUserMenuOpen(false);
                       navigate('/review');
                     }}
-                    className="w-full px-3.5 py-2 text-left text-slate-300 hover:text-white hover:bg-white/[0.05] flex items-center gap-2"
+                    className="w-full px-3.5 py-2 text-left text-slate-300 hover:text-white hover:bg-white/[0.05] flex items-center gap-2.5 transition"
                   >
                     <Moon className="w-3.5 h-3.5 text-purple-400" />
-                    <span>Evening Review</span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setIsUserMenuOpen(false);
-                      navigate('/settings');
-                    }}
-                    className="w-full px-3.5 py-2 text-left text-slate-300 hover:text-white hover:bg-white/[0.05] flex items-center gap-2"
-                  >
-                    <Settings className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Profile & Settings</span>
+                    <span>Evening Executive Review</span>
                   </button>
                 </div>
 
@@ -327,7 +492,7 @@ export const ExecutiveHeader: React.FC<ExecutiveHeaderProps> = ({
                         setIsUserMenuOpen(false);
                         navigate('/login');
                       }}
-                      className="w-full px-3 py-2 text-left text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 rounded-xl flex items-center gap-2 font-medium"
+                      className="w-full px-3 py-2 text-left text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 rounded-xl flex items-center gap-2 font-medium transition"
                     >
                       <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                       <span>Sign In to Executive Account</span>
@@ -339,7 +504,7 @@ export const ExecutiveHeader: React.FC<ExecutiveHeaderProps> = ({
                         await signOut();
                         navigate('/login');
                       }}
-                      className="w-full px-3 py-2 text-left text-rose-400 hover:bg-rose-500/10 rounded-xl flex items-center gap-2"
+                      className="w-full px-3 py-2 text-left text-rose-400 hover:bg-rose-500/10 rounded-xl flex items-center gap-2 transition"
                     >
                       <LogOut className="w-3.5 h-3.5" />
                       <span>Sign Out</span>

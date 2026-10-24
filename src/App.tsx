@@ -68,6 +68,7 @@ export function App() {
               <Route path="review" element={<ReviewPage />} />
               <Route path="insights" element={<InsightsPage />} />
               <Route path="settings" element={<SettingsPage />} />
+              <Route path="profile" element={<SettingsPage />} />
             </Route>
 
             {/* Fallback to login if not authenticated or root */}
