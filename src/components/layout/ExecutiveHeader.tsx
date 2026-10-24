@@ -30,7 +30,17 @@ export const ExecutiveHeader: React.FC<ExecutiveHeaderProps> = ({
   const { activePlan } = useData();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
-  const userName = profile?.display_name || user?.user_metadata?.full_name || 'Harsh Singh';
+  const userName =
+    profile?.display_name ||
+    user?.user_metadata?.full_name ||
+    user?.email?.split('@')[0] ||
+    (isGuest ? 'Alex Vance (Demo)' : 'Executive');
+
+  const userInitial = (userName?.[0] || 'E').toUpperCase();
+  const { goals, projects } = useData();
+  const keyMoves = activePlan?.key_moves || [];
+  const completedMoves = keyMoves.filter((m) => m.status === 'completed').length;
+  const totalMoves = keyMoves.length || 3;
 
   return (
     <header className="w-full pt-4 px-4 sm:px-8 max-w-7xl mx-auto">
@@ -179,7 +189,7 @@ export const ExecutiveHeader: React.FC<ExecutiveHeaderProps> = ({
             </button>
           )}
 
-          {/* Notification Bell with Amber Dot matching reference */}
+          {/* Notification Bell with Amber Dot */}
           <button
             onClick={onOpenAssistant}
             className="w-9 h-9 rounded-full bg-white/[0.04] border border-white/[0.08] hover:border-amber-500/30 flex items-center justify-center text-slate-300 relative transition cursor-pointer"
@@ -189,17 +199,16 @@ export const ExecutiveHeader: React.FC<ExecutiveHeaderProps> = ({
             <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-amber-400 ring-2 ring-[#0c0e14] shadow-[0_0_6px_rgba(245,158,11,0.8)]" />
           </button>
 
-          {/* User Profile Pill matching reference */}
+          {/* User Profile Pill */}
           <div className="relative">
             <button
               onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
               className="flex items-center gap-2 pl-1.5 pr-2.5 py-1 rounded-full bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.08] transition cursor-pointer select-none"
             >
-              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center text-xs font-semibold text-white shadow-inner overflow-hidden border border-amber-300/30">
-                {/* Fallback initial or photo representation */}
-                <span>{userName[0]}</span>
+              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center text-xs font-bold text-white shadow-inner overflow-hidden border border-amber-300/40">
+                <span>{userInitial}</span>
               </div>
-              <span className="text-xs font-medium text-slate-200 hidden sm:inline">
+              <span className="text-xs font-medium text-slate-200 hidden sm:inline capitalize">
                 {userName}
               </span>
               <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
@@ -207,23 +216,73 @@ export const ExecutiveHeader: React.FC<ExecutiveHeaderProps> = ({
 
             {/* Dropdown Menu */}
             {isUserMenuOpen && (
-              <div className="absolute right-0 mt-2 w-56 rounded-xl bg-[#12151d] border border-white/[0.1] shadow-2xl py-2 z-50 animate-fade-in text-xs">
-                <div className="px-3 py-2 border-b border-white/[0.06]">
-                  <p className="font-semibold text-slate-100 truncate">{userName}</p>
-                  <p className="text-[10px] text-slate-400 truncate font-mono">
+              <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-[#12151d] border border-white/[0.1] shadow-2xl py-2.5 z-50 animate-fade-in text-xs">
+                {/* Profile Card Header */}
+                <div className="px-3.5 py-2.5 border-b border-white/[0.06] space-y-1">
+                  <div className="flex items-center justify-between">
+                    <p className="font-bold text-slate-100 truncate text-sm capitalize">{userName}</p>
+                    {!isGuest && user && (
+                      <span className="px-1.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-mono font-medium">
+                        Verified
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-amber-300/90 truncate font-mono">
                     {isGuest ? 'Demo Workspace' : user?.email}
                   </p>
+                  <div className="pt-1 flex items-center gap-1.5 text-[10px] text-slate-400 font-mono">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <span>{isGuest ? 'Instant Sandbox' : 'Supabase Cloud Synced'}</span>
+                  </div>
+                </div>
+
+                {/* Live User Data Quick Stats */}
+                <div className="px-3 py-2 bg-white/[0.02] border-b border-white/[0.06] grid grid-cols-3 gap-2 text-center text-[10px]">
+                  <div className="p-1 rounded bg-black/30 border border-white/[0.04]">
+                    <div className="text-amber-400 font-bold text-xs">{goals.length}</div>
+                    <div className="text-slate-400">Goals</div>
+                  </div>
+                  <div className="p-1 rounded bg-black/30 border border-white/[0.04]">
+                    <div className="text-amber-400 font-bold text-xs">{projects.length}</div>
+                    <div className="text-slate-400">Projects</div>
+                  </div>
+                  <div className="p-1 rounded bg-black/30 border border-white/[0.04]">
+                    <div className="text-amber-400 font-bold text-xs">{completedMoves}/{totalMoves}</div>
+                    <div className="text-slate-400">Priorities</div>
+                  </div>
                 </div>
 
                 <div className="py-1">
                   <button
                     onClick={() => {
                       setIsUserMenuOpen(false);
+                      navigate('/projects');
+                    }}
+                    className="w-full px-3.5 py-2 text-left text-slate-300 hover:text-white hover:bg-white/[0.05] flex items-center gap-2"
+                  >
+                    <Zap className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Active Projects ({projects.length})</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setIsUserMenuOpen(false);
+                      navigate('/goals');
+                    }}
+                    className="w-full px-3.5 py-2 text-left text-slate-300 hover:text-white hover:bg-white/[0.05] flex items-center gap-2"
+                  >
+                    <BarChart3 className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Executive Goals ({goals.length})</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setIsUserMenuOpen(false);
                       navigate('/journal');
                     }}
-                    className="w-full px-3 py-2 text-left text-slate-300 hover:text-white hover:bg-white/[0.05] flex items-center gap-2"
+                    className="w-full px-3.5 py-2 text-left text-slate-300 hover:text-white hover:bg-white/[0.05] flex items-center gap-2"
                   >
-                    <BookOpen className="w-3.5 h-3.5 text-amber-400" />
+                    <BookOpen className="w-3.5 h-3.5 text-sky-400" />
                     <span>CEO Journal</span>
                   </button>
 
@@ -232,9 +291,9 @@ export const ExecutiveHeader: React.FC<ExecutiveHeaderProps> = ({
                       setIsUserMenuOpen(false);
                       navigate('/decision-room');
                     }}
-                    className="w-full px-3 py-2 text-left text-slate-300 hover:text-white hover:bg-white/[0.05] flex items-center gap-2"
+                    className="w-full px-3.5 py-2 text-left text-slate-300 hover:text-white hover:bg-white/[0.05] flex items-center gap-2"
                   >
-                    <Compass className="w-3.5 h-3.5 text-sky-400" />
+                    <Compass className="w-3.5 h-3.5 text-indigo-400" />
                     <span>Decision Room</span>
                   </button>
 
@@ -243,21 +302,10 @@ export const ExecutiveHeader: React.FC<ExecutiveHeaderProps> = ({
                       setIsUserMenuOpen(false);
                       navigate('/review');
                     }}
-                    className="w-full px-3 py-2 text-left text-slate-300 hover:text-white hover:bg-white/[0.05] flex items-center gap-2"
+                    className="w-full px-3.5 py-2 text-left text-slate-300 hover:text-white hover:bg-white/[0.05] flex items-center gap-2"
                   >
-                    <Moon className="w-3.5 h-3.5 text-indigo-400" />
+                    <Moon className="w-3.5 h-3.5 text-purple-400" />
                     <span>Evening Review</span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setIsUserMenuOpen(false);
-                      navigate('/insights');
-                    }}
-                    className="w-full px-3 py-2 text-left text-slate-300 hover:text-white hover:bg-white/[0.05] flex items-center gap-2"
-                  >
-                    <BarChart3 className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Evidence Insights</span>
                   </button>
 
                   <button
@@ -265,24 +313,24 @@ export const ExecutiveHeader: React.FC<ExecutiveHeaderProps> = ({
                       setIsUserMenuOpen(false);
                       navigate('/settings');
                     }}
-                    className="w-full px-3 py-2 text-left text-slate-300 hover:text-white hover:bg-white/[0.05] flex items-center gap-2"
+                    className="w-full px-3.5 py-2 text-left text-slate-300 hover:text-white hover:bg-white/[0.05] flex items-center gap-2"
                   >
                     <Settings className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Settings & Sync</span>
+                    <span>Profile & Settings</span>
                   </button>
                 </div>
 
-                <div className="pt-1 border-t border-white/[0.06] px-1">
+                <div className="pt-1.5 border-t border-white/[0.06] px-2">
                   {isGuest ? (
                     <button
                       onClick={() => {
                         setIsUserMenuOpen(false);
                         navigate('/login');
                       }}
-                      className="w-full px-3 py-2 text-left text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 rounded-lg flex items-center gap-2 font-medium"
+                      className="w-full px-3 py-2 text-left text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 rounded-xl flex items-center gap-2 font-medium"
                     >
                       <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Sign In with Gmail</span>
+                      <span>Sign In to Executive Account</span>
                     </button>
                   ) : (
                     <button
@@ -291,7 +339,7 @@ export const ExecutiveHeader: React.FC<ExecutiveHeaderProps> = ({
                         await signOut();
                         navigate('/login');
                       }}
-                      className="w-full px-3 py-2 text-left text-rose-400 hover:bg-rose-500/10 rounded-lg flex items-center gap-2"
+                      className="w-full px-3 py-2 text-left text-rose-400 hover:bg-rose-500/10 rounded-xl flex items-center gap-2"
                     >
                       <LogOut className="w-3.5 h-3.5" />
                       <span>Sign Out</span>

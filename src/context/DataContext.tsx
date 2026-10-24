@@ -105,6 +105,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           { data: checkinData },
           { data: plansData },
           { data: goalsData },
+          { data: projectsData },
           { data: journalData },
           { data: reviewsData },
           { data: decisionsData },
@@ -112,34 +113,208 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           supabase.from('daily_checkins').select('*').eq('local_date', todayDate).maybeSingle(),
           supabase.from('daily_plans').select('*, key_moves(*)').order('created_at', { ascending: false }),
           supabase.from('goals').select('*').order('created_at', { ascending: false }),
+          supabase.from('projects').select('*').order('created_at', { ascending: false }),
           supabase.from('journal_entries').select('*').order('created_at', { ascending: false }),
           supabase.from('daily_reviews').select('*').order('created_at', { ascending: false }),
           supabase.from('decisions').select('*').order('created_at', { ascending: false }),
         ]);
 
-        if (checkinData) setCheckin(checkinData as DailyCheckin);
+        let finalCheckin = checkinData ? (checkinData as DailyCheckin) : null;
+        let finalPlans = plansData && plansData.length > 0 ? (plansData as unknown as DailyPlan[]) : [];
+        let finalGoals = goalsData ? (goalsData as Goal[]) : [];
+        let finalProjects = projectsData ? (projectsData as Project[]) : [];
+        let finalJournal = journalData ? (journalData as JournalEntry[]) : [];
+        let finalReviews = reviewsData ? (reviewsData as DailyReview[]) : [];
+        let finalDecisions = decisionsData ? (decisionsData as Decision[]) : [];
 
-        if (plansData && plansData.length > 0) {
-          const typedPlans = plansData as unknown as DailyPlan[];
+        // If fresh account with no plans and no goals, seed initial executive suite for this user in Supabase:
+        if (finalPlans.length === 0 && finalGoals.length === 0 && user) {
+          const now = new Date().toISOString();
+          const userId = user.id;
+
+          // 1. Initial Checkin for today
+          const seededCheckin: DailyCheckin = {
+            id: crypto.randomUUID(),
+            user_id: userId,
+            local_date: todayDate,
+            energy: 9,
+            mood: 'energized',
+            main_goal: 'Execute core quarterly objectives and lead key initiatives with high clarity',
+            obstacles: 'Context switching and unstructured meetings',
+            available_minutes: 360,
+            urgent_commitments: 'Board review preparation and strategic roadmap alignment',
+            created_at: now,
+            updated_at: now,
+          };
+          await supabase.from('daily_checkins').upsert(seededCheckin);
+          finalCheckin = seededCheckin;
+
+          // 2. Initial Plan & Key Moves
+          const initialPlanId = crypto.randomUUID();
+          const seededPlan: DailyPlan = {
+            id: initialPlanId,
+            user_id: userId,
+            checkin_id: seededCheckin.id,
+            local_date: todayDate,
+            version: 1,
+            status: 'active',
+            primary_mission: {
+              title: 'Drive decisive progress on high-leverage revenue initiatives.',
+              why: 'Unlocks milestone achievement for Q4 and keeps team synchronized on priority one.',
+              successCriteria: 'Review dashboard metrics and execute all 3 priority key moves.',
+              estimatedMinutes: 90,
+            },
+            decision_filter: {
+              if: 'an incoming initiative does not directly impact Q4 velocity or customer retention',
+              then: 'delegate or defer to next cycle',
+              ignoreOrDefer: 'unstructured meeting requests and minor scope creep',
+            },
+            energy_advice: 'Peak energy window is 9:00 AM – 12:30 PM. Protect this block for deep strategic execution.',
+            shutdown_ritual: [
+              'Review today’s completed moves and update KPI metrics',
+              'Capture quick evening reflection or lessons learned',
+              'Define top 3 priorities for tomorrow morning',
+            ],
+            created_at: now,
+            key_moves: [
+              {
+                id: crypto.randomUUID(),
+                plan_id: initialPlanId,
+                user_id: userId,
+                title: 'Review Q4 Strategic Priorities & Revenue Engine',
+                description: 'Verify quarterly milestones and ensure resources are aligned to top deliverables.',
+                priority: 1,
+                estimated_minutes: 60,
+                status: 'pending',
+                completed_at: null,
+                created_at: now,
+              },
+              {
+                id: crypto.randomUUID(),
+                plan_id: initialPlanId,
+                user_id: userId,
+                title: 'Executive Sync with Core Leadership Team',
+                description: 'Align on blockers, resource allocation, and key deliverables for the week.',
+                priority: 2,
+                estimated_minutes: 45,
+                status: 'pending',
+                completed_at: null,
+                created_at: now,
+              },
+              {
+                id: crypto.randomUUID(),
+                plan_id: initialPlanId,
+                user_id: userId,
+                title: 'Decision Room: Evaluate Strategic Partnership Opportunity',
+                description: 'Run 5-filter CEO framework on incoming commercial partnership proposal.',
+                priority: 3,
+                estimated_minutes: 30,
+                status: 'pending',
+                completed_at: null,
+                created_at: now,
+              },
+            ],
+          };
+
+          const { key_moves, ...planRecord } = seededPlan;
+          await supabase.from('daily_plans').insert(planRecord);
+          if (key_moves && key_moves.length > 0) {
+            await supabase.from('key_moves').insert(key_moves);
+          }
+          finalPlans = [seededPlan];
+
+          // 3. Initial Goals
+          const seededGoals: Goal[] = [
+            {
+              id: crypto.randomUUID(),
+              user_id: userId,
+              title: 'Achieve 35% QoQ Expansion in Recurring Enterprise ARR',
+              description: 'Focus on high-value client acquisition and expanding key accounts.',
+              target_date: '2026-12-31',
+              status: 'active',
+              created_at: now,
+            },
+            {
+              id: crypto.randomUUID(),
+              user_id: userId,
+              title: 'Scale High-Performance Product Leadership & Operations',
+              description: 'Attract top-tier talent and streamline cross-functional velocity.',
+              target_date: '2026-11-30',
+              status: 'active',
+              created_at: now,
+            },
+            {
+              id: crypto.randomUUID(),
+              user_id: userId,
+              title: 'Maintain 80%+ Deep Work Adherence and Zero Executive Burnout',
+              description: 'Protect mornings for strategic thinking and maintain healthy evening shutdowns.',
+              target_date: '2026-12-31',
+              status: 'active',
+              created_at: now,
+            },
+          ];
+          await supabase.from('goals').insert(seededGoals);
+          finalGoals = seededGoals;
+
+          // 4. Initial Projects
+          const seededProjects: Project[] = [
+            {
+              id: crypto.randomUUID(),
+              user_id: userId,
+              title: 'Executive Operating System Upgrade',
+              description: 'Implement real-time KPI tracking, daily briefing loops, and strategic replanning.',
+              status: 'active',
+              priority: 'critical',
+              target_date: '2026-11-15',
+              created_at: now,
+              tasks: [
+                { id: crypto.randomUUID(), title: 'Configure Supabase real-time cloud database', completed: true },
+                { id: crypto.randomUUID(), title: 'Implement daily check-in & AI briefing engine', completed: true },
+                { id: crypto.randomUUID(), title: 'Review weekly velocity and decision log', completed: false },
+              ],
+            },
+            {
+              id: crypto.randomUUID(),
+              user_id: userId,
+              title: 'Enterprise Growth & Strategic Partnerships',
+              description: 'Identify top 5 strategic partners and establish recurring distribution channels.',
+              status: 'active',
+              priority: 'high',
+              target_date: '2026-12-15',
+              created_at: now,
+              tasks: [
+                { id: crypto.randomUUID(), title: 'Prepare partnership pitch deck', completed: true },
+                { id: crypto.randomUUID(), title: 'Schedule initial leadership exploratory calls', completed: false },
+                { id: crypto.randomUUID(), title: 'Finalize memorandum of understanding', completed: false },
+              ],
+            },
+          ];
+          await supabase.from('projects').insert(seededProjects);
+          finalProjects = seededProjects;
+        }
+
+        setCheckin(finalCheckin);
+
+        if (finalPlans.length > 0) {
           // Sort key moves by priority
-          typedPlans.forEach(p => {
+          finalPlans.forEach(p => {
             if (p.key_moves) {
               p.key_moves.sort((a, b) => a.priority - b.priority);
             }
           });
-          const todayActive = typedPlans.find(p => p.local_date === todayDate && p.status === 'active') || typedPlans[0];
+          const todayActive = finalPlans.find(p => p.local_date === todayDate && p.status === 'active') || finalPlans[0];
           setActivePlan(todayActive || null);
-          setPlanHistory(typedPlans);
+          setPlanHistory(finalPlans);
         } else {
-          // If fresh account with no plans yet
           setActivePlan(null);
           setPlanHistory([]);
         }
 
-        if (goalsData) setGoals(goalsData as Goal[]);
-        if (journalData) setJournalEntries(journalData as JournalEntry[]);
-        if (reviewsData) setReviews(reviewsData as DailyReview[]);
-        if (decisionsData) setDecisions(decisionsData as Decision[]);
+        setGoals(finalGoals);
+        setProjects(finalProjects);
+        setJournalEntries(finalJournal);
+        setReviews(finalReviews);
+        setDecisions(finalDecisions);
       }
     } catch (err) {
       console.error('Error loading data:', err);
@@ -379,30 +554,45 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       })),
     };
     setProjects((prev) => [newProj, ...prev]);
+    if (!isGuest && user) {
+      await supabase.from('projects').insert(newProj);
+    }
   };
 
   const toggleProjectTask = async (projectId: string, taskId: string) => {
+    let updatedTasks: any[] = [];
     setProjects((prev) =>
       prev.map((p) => {
         if (p.id !== projectId) return p;
+        const newTasks = p.tasks.map((t) =>
+          t.id === taskId ? { ...t, completed: !t.completed } : t
+        );
+        updatedTasks = newTasks;
         return {
           ...p,
-          tasks: p.tasks.map((t) =>
-            t.id === taskId ? { ...t, completed: !t.completed } : t
-          ),
+          tasks: newTasks,
         };
       })
     );
+    if (!isGuest && user && updatedTasks.length > 0) {
+      await supabase.from('projects').update({ tasks: updatedTasks }).eq('id', projectId);
+    }
   };
 
   const updateProjectStatus = async (projectId: string, status: Project['status']) => {
     setProjects((prev) =>
       prev.map((p) => (p.id === projectId ? { ...p, status } : p))
     );
+    if (!isGuest && user) {
+      await supabase.from('projects').update({ status }).eq('id', projectId);
+    }
   };
 
   const deleteProject = async (projectId: string) => {
     setProjects((prev) => prev.filter((p) => p.id !== projectId));
+    if (!isGuest && user) {
+      await supabase.from('projects').delete().eq('id', projectId);
+    }
   };
 
   // 5. CEO Journal CRUD

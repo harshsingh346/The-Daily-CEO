@@ -78,26 +78,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setIsGuest(false);
           fetchOrCreateProfile(initialSession.user);
         } else {
-          // If no active session, check if user logged out
-          const wasLoggedOut = sessionStorage.getItem('the_daily_ceo_logged_out');
-          if (wasLoggedOut) {
-            setIsGuest(false);
-            setUser(null);
-            setProfile(null);
-          } else {
-            // Default to demo mode for instantaneous zero-friction evaluation
-            setIsGuest(true);
-            setUser(DEMO_USER);
-            setProfile(DEMO_PROFILE);
-          }
+          // If no active session, start on login page (do not default to demo mode)
+          setIsGuest(false);
+          setUser(null);
+          setProfile(null);
         }
         setIsLoading(false);
       })
       .catch((err) => {
         console.warn('Auth session check fallback:', err);
-        setIsGuest(true);
-        setUser(DEMO_USER);
-        setProfile(DEMO_PROFILE);
+        setIsGuest(false);
+        setUser(null);
+        setProfile(null);
         setIsLoading(false);
       });
 

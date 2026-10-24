@@ -65,6 +65,12 @@ export const DashboardPage: React.FC = () => {
 
   const energyScore = checkin ? checkin.energy * 10 : 88;
 
+  const userDisplayName =
+    profile?.display_name ||
+    user?.user_metadata?.full_name ||
+    user?.email?.split('@')[0] ||
+    'Executive';
+
   return (
     <div className="max-w-7xl mx-auto space-y-7 py-2">
       {/* 1. Daily Briefing Sub-header matching reference image */}
@@ -80,7 +86,9 @@ export const DashboardPage: React.FC = () => {
           </h1>
           <p className="text-xs sm:text-sm text-slate-400 mt-1 flex items-center gap-1.5">
             <span className="text-amber-400">✦</span>
-            <span>Good morning. Let's turn your priorities into progress.</span>
+            <span>
+              Good morning, <strong className="text-slate-200 capitalize font-medium">{userDisplayName}</strong>. Let's turn your priorities into progress.
+            </span>
           </p>
         </div>
 
